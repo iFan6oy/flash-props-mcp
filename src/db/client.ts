@@ -38,10 +38,12 @@ export function ensureSchema(): void {
 		);
 		CREATE TABLE IF NOT EXISTS crypto_orders (
 			id TEXT PRIMARY KEY,
+			chain TEXT NOT NULL DEFAULT 'solana',
 			reference TEXT NOT NULL UNIQUE,
 			tier TEXT NOT NULL,
 			months INTEGER NOT NULL,
 			amount_usdc TEXT NOT NULL,
+			from_block INTEGER,
 			status TEXT NOT NULL DEFAULT 'pending',
 			key_id TEXT,
 			signature TEXT,
@@ -50,11 +52,17 @@ export function ensureSchema(): void {
 			paid_at INTEGER
 		);
 	`);
-	// Additive migration for the prepaid-expiry column on existing databases.
-	try {
-		sqlite.exec('ALTER TABLE api_keys ADD COLUMN expires_at INTEGER');
-	} catch {
-		/* column already exists */
+	// Additive migrations for existing databases (idempotent — ignore "duplicate column").
+	for (const stmt of [
+		'ALTER TABLE api_keys ADD COLUMN expires_at INTEGER',
+		"ALTER TABLE crypto_orders ADD COLUMN chain TEXT NOT NULL DEFAULT 'solana'",
+		'ALTER TABLE crypto_orders ADD COLUMN from_block INTEGER'
+	]) {
+		try {
+			sqlite.exec(stmt);
+		} catch {
+			/* column already exists */
+		}
 	}
 }
 

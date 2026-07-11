@@ -5,17 +5,25 @@ import { TIERS, type TierId } from '../config/tiers.js';
 import { createApiKey } from '../auth/keys.js';
 import { getStripe, priceIdForTier, tierForPrice } from './stripe.js';
 import { provisionForCustomer, revokeForCustomer, setTierForCustomer } from './provision.js';
-import { cryptoEnabled } from '../config/crypto.js';
+import {
+	cryptoEnabled,
+	enabledChains,
+	defaultChain,
+	chainEnabled,
+	CHAIN_LABEL,
+	type CryptoChain
+} from '../config/crypto.js';
 import {
 	createCryptoOrder,
 	getOrder,
 	findPayment,
 	provisionCryptoKey,
 	expireIfStale,
-	solanaPayUrl,
+	payTarget,
 	monthsForPeriod,
 	type CryptoOrder
 } from './crypto.js';
+import { notifySale } from './notify.js';
 
 export const billing = new Hono();
 
@@ -122,6 +130,9 @@ billing.get('/success', async (c) => {
 	const customerId = String(session.customer);
 	const tier = ((session.metadata?.tier as TierId) || 'starter') as TierId;
 	const result = provisionForCustomer(customerId, tier);
+	if (result.created) {
+		notifySale({ channel: 'stripe', tier, amount: TIERS[tier].priceMonthly ?? 0, currency: 'USD', period: '1 mo' });
+	}
 	return c.html(keyPage({ tier, ...result }));
 });
 
@@ -160,19 +171,30 @@ billing.post('/webhook', async (c) => {
 
 // --- Crypto checkout (Solana Pay / USDC) -----------------------------------
 async function cryptoPayPage(order: CryptoOrder): Promise<string> {
-	const url = solanaPayUrl(order);
-	const qr = await QRCode.toString(url, { type: 'svg', margin: 1, width: 220 });
+	const tgt = payTarget(order);
+	const qr = await QRCode.toString(tgt.url, { type: 'svg', margin: 1, width: 220 });
 	const t = TIERS[order.tier as TierId];
+	const periodId = order.months >= 12 ? 'year' : 'month';
+	const chainName = CHAIN_LABEL[tgt.chain];
+	const wallets = tgt.chain === 'base' ? 'MetaMask / Coinbase Wallet / Rainbow' : 'Phantom / Solflare';
+	const switcher = enabledChains()
+		.filter((ch) => ch !== order.chain)
+		.map(
+			(ch) =>
+				`<a class="b" style="margin-right:14px" href="/billing/crypto?tier=${order.tier}&period=${periodId}&chain=${ch}">Pay on ${CHAIN_LABEL[ch]} instead</a>`
+		)
+		.join('');
 	return page(
 		'Pay with crypto',
-		`<h1>Pay with USDC</h1>
-     <p class="mut">${t.name} · ${order.months} month${order.months > 1 ? 's' : ''} prepaid. Send exactly:</p>
-     <div style="font-size:34px;font-weight:850;margin:4px 0 14px">${order.amountUsdc} <span style="font-size:15px;color:#9aa3b6">USDC</span></div>
+		`<h1>Pay ${tgt.amount} USDC</h1>
+     <p class="mut">${t.name} · ${order.months} month${order.months > 1 ? 's' : ''} prepaid · on <b>${chainName}</b>. Send the exact amount:</p>
+     <div style="font-size:34px;font-weight:850;margin:4px 0 14px">${tgt.amount} <span style="font-size:15px;color:#9aa3b6">USDC</span></div>
      <div style="background:#fff;border-radius:12px;padding:10px;width:240px;margin:0 auto 14px">${qr}</div>
-     <p class="mut">Scan with Phantom / Solflare (Solana), or send USDC to:</p>
-     <div class="key"><code id="addr">${env.RECEIVE_WALLET}</code><button id="c" onclick="navigator.clipboard.writeText(document.getElementById('addr').innerText);this.innerText='Copied';">Copy</button></div>
+     <p class="mut">Scan with ${wallets}, or send USDC on ${chainName} to:</p>
+     <div class="key"><code id="addr">${tgt.address}</code><button id="c" onclick="navigator.clipboard.writeText(document.getElementById('addr').innerText);this.innerText='Copied';">Copy</button></div>
      <div id="status" class="warn">Waiting for payment… (order expires in 30 min)</div>
      <div id="done" style="display:none"></div>
+     ${switcher ? `<div style="margin-top:12px">${switcher}</div>` : ''}
      <script>
        const oid=${JSON.stringify(order.id)};
        async function poll(){
@@ -208,12 +230,17 @@ billing.get('/crypto', async (c) => {
 	}
 	const tier = (c.req.query('tier') || '') as TierId;
 	const periodId = c.req.query('period') || 'month';
+	const chainParam = c.req.query('chain');
 	if (tier !== 'starter' && tier !== 'pro') {
 		return c.json({ error: 'bad_tier', message: 'tier must be starter or pro' }, 400);
 	}
 	const months = monthsForPeriod(periodId);
 	if (!months) return c.json({ error: 'bad_period', message: 'period must be month or year' }, 400);
-	const order = createCryptoOrder(tier, months);
+	const chain: CryptoChain | null = chainParam && chainEnabled(chainParam) ? chainParam : defaultChain();
+	if (!chain) {
+		return c.html(page('Crypto not configured', `<h1>Crypto checkout isn't enabled yet</h1>`), 503);
+	}
+	const order = await createCryptoOrder(tier, months, chain);
 	if ('error' in order) {
 		return c.html(page('Unavailable', `<h1>Can't create the order</h1><p class="mut">${order.error}</p>`), 503);
 	}
@@ -232,6 +259,16 @@ billing.get('/crypto/status', async (c) => {
 		const sig = await findPayment(order);
 		if (!sig) return c.json({ status: 'pending' });
 		const prov = provisionCryptoKey(order, sig);
+		if (prov.created) {
+			notifySale({
+				channel: 'crypto',
+				tier: order.tier,
+				amount: order.amountUsdc,
+				currency: 'USDC',
+				period: `${order.months} mo`,
+				chain: order.chain
+			});
+		}
 		return c.json({
 			status: 'paid',
 			tier: order.tier,

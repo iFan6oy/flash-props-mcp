@@ -26,7 +26,13 @@ const EnvSchema = z.object({
 	SOLANA_RPC_URL: z.string().url().default('https://api.mainnet-beta.solana.com'),
 	RECEIVE_WALLET: z.string().default(''),
 	USDC_MINT: z.string().default('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'),
-	CRYPTO_DISCOUNT_PCT: z.coerce.number().min(0).max(90).default(10)
+	CRYPTO_DISCOUNT_PCT: z.coerce.number().min(0).max(90).default(10),
+	// Base (EVM) USDC — enables when EVM_RECEIVE_WALLET is set.
+	BASE_RPC_URL: z.string().url().default('https://mainnet.base.org'),
+	EVM_RECEIVE_WALLET: z.string().default(''),
+	USDC_BASE: z.string().default('0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'),
+	// Sale notifications — POSTed to this URL (Discord-compatible) on each paid key.
+	NOTIFY_WEBHOOK: z.string().default('')
 });
 
 export const env = EnvSchema.parse(process.env);

@@ -95,7 +95,7 @@ function tierCard(id: keyof typeof TIERS): string {
     <a class="tier-cta" href="${href}">${cta}</a>
     ${
 			(id === 'starter' || id === 'pro') && cryptoEnabled()
-				? `<a class="tier-crypto" href="/billing/crypto?tier=${id}&period=month">◎ Pay with crypto · $${cryptoPerMonthUsdc(id)}/mo <b>save ${discountPct()}%</b></a>`
+				? `<a class="tier-crypto" href="/billing/crypto?tier=${id}&period=month">Pay with USDC · $${cryptoPerMonthUsdc(id)}/mo <b>save ${discountPct()}%</b></a>`
 				: ''
 		}
   </div>`;

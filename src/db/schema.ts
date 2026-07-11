@@ -22,13 +22,15 @@ export const apiKeys = sqliteTable(
 // Prepaid crypto payment orders (Solana Pay / USDC).
 export const cryptoOrders = sqliteTable('crypto_orders', {
 	id: text('id').primaryKey(), // ord_<nanoid>
-	reference: text('reference').notNull().unique(), // unique Solana pubkey marker
+	chain: text('chain').notNull().default('solana'), // solana | base
+	reference: text('reference').notNull().unique(), // solana: pubkey marker; base: order nonce
 	tier: text('tier').notNull(),
 	months: integer('months').notNull(),
-	amountUsdc: text('amount_usdc').notNull(), // decimal string, e.g. "84.15"
+	amountUsdc: text('amount_usdc').notNull(), // decimal string; base uses a unique micro-amount
+	fromBlock: integer('from_block'), // base: block at order creation to scan from
 	status: text('status').notNull().default('pending'), // pending | paid | expired
 	keyId: text('key_id'), // set once provisioned
-	signature: text('signature'), // paying tx signature
+	signature: text('signature'), // paying tx signature / hash
 	createdAt: integer('created_at').notNull(),
 	expiresAt: integer('expires_at').notNull(), // order (payment window) expiry
 	paidAt: integer('paid_at')
