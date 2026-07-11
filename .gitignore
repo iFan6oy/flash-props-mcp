@@ -1,0 +1,21 @@
+node_modules/
+dist/
+
+# secrets & env — never commit (keep .env.example only)
+.env
+.env.*
+!.env.example
+
+# local data / db
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+data/
+
+# build/temp artifacts
+*.log
+*.tar.gz
+*.bak
+*.bak-*
+.mcp_h.txt
+.DS_Store
