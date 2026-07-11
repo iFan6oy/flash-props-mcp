@@ -32,7 +32,9 @@ const EnvSchema = z.object({
 	EVM_RECEIVE_WALLET: z.string().default(''),
 	USDC_BASE: z.string().default('0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'),
 	// Sale notifications — POSTed to this URL (Discord-compatible) on each paid key.
-	NOTIFY_WEBHOOK: z.string().default('')
+	NOTIFY_WEBHOOK: z.string().default(''),
+	// Admin dashboard/API token. Admin is disabled (503) until set. Use a strong value.
+	ADMIN_TOKEN: z.string().default('')
 });
 
 export const env = EnvSchema.parse(process.env);

@@ -10,6 +10,7 @@ import { v1 } from './routes/v1.js';
 import { meta } from './routes/meta.js';
 import { mcpApp } from './mcp/http.js';
 import { billing } from './billing/routes.js';
+import { admin } from './admin/routes.js';
 
 ensureSchema();
 
@@ -28,6 +29,9 @@ app.route('/mcp', mcpApp);
 
 // Billing: Stripe checkout, success, self-serve free key, webhook
 app.route('/billing', billing);
+
+// Admin dashboard + gated API (revoke/issue keys, view sales)
+app.route('/admin', admin);
 
 // Security scheme for the generated spec
 app.openAPIRegistry.registerComponent('securitySchemes', 'BearerAuth', {
