@@ -3,8 +3,8 @@ import type { AppEnv } from '../app-env.js';
 import { authMiddleware } from '../auth/middleware.js';
 import { rateLimitMiddleware } from '../rate-limit/middleware.js';
 import { listGames, getProps, scanProps } from '../data/props.js';
-import { sportAllowed, type Tier } from '../config/tiers.js';
-import { SPORT_CATALOG } from '../config/sports.js';
+import { sportAllowed, effectiveSports, type Tier } from '../config/tiers.js';
+import { SPORT_CATALOG, headlineSport } from '../config/sports.js';
 import { getUsageToday } from '../db/usage.js';
 import { gateGames, gateProps, gateScan } from './gating.js';
 import {
@@ -46,11 +46,25 @@ const errTier = jsonContent(ErrorSchema, 'Not permitted on your tier');
 const errRate = jsonContent(ErrorSchema, 'Rate limit or daily quota exceeded');
 
 function forbidSport(sport: string, tier: Tier) {
-	const allowed = tier.sports === 'all' ? 'all sports' : tier.sports.join(', ');
+	const eff = effectiveSports(tier);
+	const allowed = eff === 'all' ? 'all sports' : eff.join(', ');
 	return {
 		error: 'tier_forbidden',
 		message: `The ${sport} feed is not included in your ${tier.name} tier (covers: ${allowed}). Upgrade to unlock it.`
 	};
+}
+
+// Resolve the sport for a request against the caller's tier. If they didn't
+// explicitly pass ?sport= and the schema's default (nba) isn't on their tier,
+// fall back to today's in-season headline sport instead of 403ing — so a bare
+// call always returns a live slate. An EXPLICIT out-of-tier sport still 403s.
+function pickSport(tier: Tier, defaulted: string, explicit: string | undefined): string | null {
+	if (sportAllowed(tier, defaulted)) return defaulted;
+	if (!explicit) {
+		const fallback = headlineSport();
+		if (sportAllowed(tier, fallback)) return fallback;
+	}
+	return null;
 }
 
 // GET /sports ---------------------------------------------------------------
@@ -98,9 +112,10 @@ v1.openapi(
 	async (c) => {
 		const tier = c.get('tier');
 		const { sport } = c.req.valid('query');
-		if (!sportAllowed(tier, sport)) return c.json(forbidSport(sport, tier), 403);
-		const games = gateGames(tier, await listGames(sport));
-		return c.json({ sport, count: games.length, games }, 200);
+		const picked = pickSport(tier, sport, c.req.query('sport'));
+		if (!picked) return c.json(forbidSport(sport, tier), 403);
+		const games = gateGames(tier, await listGames(picked));
+		return c.json({ sport: picked, count: games.length, games }, 200);
 	}
 );
 
@@ -126,9 +141,10 @@ v1.openapi(
 		const tier = c.get('tier');
 		const { eventId } = c.req.valid('param');
 		const { stats, sport } = c.req.valid('query');
-		if (!sportAllowed(tier, sport)) return c.json(forbidSport(sport, tier), 403);
+		const picked = pickSport(tier, sport, c.req.query('sport'));
+		if (!picked) return c.json(forbidSport(sport, tier), 403);
 		const statList = stats ? stats.split(',').map((s) => s.trim()).filter(Boolean) : undefined;
-		const result = await getProps(eventId, statList, sport);
+		const result = await getProps(eventId, statList, picked);
 		if (!result) {
 			return c.json(
 				{ error: 'not_found', message: `No props available for event ${eventId}. It may have ended or not posted lines yet.` },
@@ -161,10 +177,11 @@ v1.openapi(
 	async (c) => {
 		const tier = c.get('tier');
 		const { sport, stat, limit } = c.req.valid('query');
-		if (!sportAllowed(tier, sport)) return c.json(forbidSport(sport, tier), 403);
+		const picked = pickSport(tier, sport, c.req.query('sport'));
+		if (!picked) return c.json(forbidSport(sport, tier), 403);
 		const requested = limit ?? tier.scanLimit;
-		const rows = gateScan(tier, await scanProps({ sport, stat, limit: Math.min(requested, tier.scanLimit) }));
-		return c.json({ sport, stat: stat ?? null, count: rows.length, rows }, 200);
+		const rows = gateScan(tier, await scanProps({ sport: picked, stat, limit: Math.min(requested, tier.scanLimit) }));
+		return c.json({ sport: picked, stat: stat ?? null, count: rows.length, rows }, 200);
 	}
 );
 
@@ -196,7 +213,7 @@ v1.openapi(
 					requestsPerMinute: tier.requestsPerMinute,
 					requestsPerDay: tier.requestsPerDay,
 					realtime: tier.realtime,
-					sports: tier.sports,
+					sports: effectiveSports(tier),
 					scanLimit: tier.scanLimit
 				},
 				usage: { today, dailyRemaining: Math.max(0, tier.requestsPerDay - today) }

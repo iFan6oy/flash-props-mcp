@@ -7,10 +7,11 @@ import type { GameRef, PropsResult, ScanRow } from './types.js';
 import { listUnderdogGames, getUnderdogProps } from './underdog.js';
 import { listBovadaGames, getBovadaProps, bovadaSupportsSport } from './bovada.js';
 
-// List today's games for a sport, merged across free books.
+// List today's games for a sport, merged across free books. Underdog carries
+// every sport it posts (pre-game) and is reachable from the VPS; Bovada adds
+// live in-game lines where it isn't IP-blocked.
 export async function listGames(sport = 'nba'): Promise<GameRef[]> {
-	const tasks: Promise<GameRef[]>[] = [];
-	if (sport === 'nba') tasks.push(listUnderdogGames().catch(() => []));
+	const tasks: Promise<GameRef[]>[] = [listUnderdogGames(sport).catch(() => [])];
 	if (bovadaSupportsSport(sport)) tasks.push(listBovadaGames(sport).catch(() => []));
 	const lists = await Promise.all(tasks);
 	return dedupeGames(lists.flat());

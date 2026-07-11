@@ -1,8 +1,15 @@
 // Subscription tiers. Numbers are starting points — tune freely. The free
 // tier serves delayed data (staleness set by FREE_TIER_DELAY_MS) and is capped
-// to NBA; paid tiers get realtime data and more sports/volume.
+// to the current in-season sport; paid tiers get realtime data and more
+// sports/volume.
+
+import { headlineSport } from './sports.js';
 
 export type TierId = 'free' | 'starter' | 'pro' | 'enterprise';
+
+// How a tier's sport access is expressed: an explicit list, everything, or the
+// dynamic "whatever league is in season today" (free tier).
+export type SportsAccess = string[] | 'all' | 'in-season';
 
 export interface Tier {
 	id: TierId;
@@ -11,7 +18,7 @@ export interface Tier {
 	requestsPerDay: number;
 	requestsPerMinute: number;
 	realtime: boolean; // false → responses delayed by FREE_TIER_DELAY_MS
-	sports: string[] | 'all'; // allowed sports
+	sports: SportsAccess; // allowed sports (or 'in-season' for the free tier)
 	scanLimit: number; // max rows returned by the /props scan
 	blurb: string;
 	features: string[];
@@ -25,10 +32,10 @@ export const TIERS: Record<TierId, Tier> = {
 		requestsPerDay: 250,
 		requestsPerMinute: 15,
 		realtime: false,
-		sports: ['nba'],
+		sports: 'in-season',
 		scanLimit: 25,
-		blurb: 'Kick the tires. Delayed NBA props, low volume.',
-		features: ['NBA props', 'Delayed data (~5 min)', '250 requests/day', 'Community support']
+		blurb: 'Kick the tires. Delayed props for whatever league is in season.',
+		features: ['Current in-season sport', 'Delayed data (~5 min)', '250 requests/day', 'Community support']
 	},
 	starter: {
 		id: 'starter',
@@ -78,6 +85,16 @@ export function tierOf(id: string): Tier {
 	return TIERS[(id as TierId)] ?? TIERS.free;
 }
 
-export function sportAllowed(tier: Tier, sport: string): boolean {
-	return tier.sports === 'all' || tier.sports.includes(sport.toLowerCase());
+// Resolve a tier's access to a concrete value for right now. The dynamic
+// 'in-season' access (free tier) collapses to today's headline sport, so the
+// sentinel never leaks out to API consumers (/me, /sports, error messages).
+export function effectiveSports(tier: Tier, now: Date = new Date()): string[] | 'all' {
+	if (tier.sports === 'all') return 'all';
+	if (tier.sports === 'in-season') return [headlineSport(now)];
+	return tier.sports;
+}
+
+export function sportAllowed(tier: Tier, sport: string, now: Date = new Date()): boolean {
+	const eff = effectiveSports(tier, now);
+	return eff === 'all' || eff.includes(sport.toLowerCase());
 }

@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { env } from '../env.js';
 import { TIERS } from '../config/tiers.js';
+import { headlineSport } from '../config/sports.js';
 import { cryptoEnabled, cryptoPerMonthUsdc, discountPct } from '../config/crypto.js';
 
 export const meta = new Hono();
@@ -10,6 +11,7 @@ const BASE = env.PUBLIC_BASE_URL;
 // --- Agent-native discovery -------------------------------------------------
 // skill.md: instructions an LLM/agent fetches to learn the API (UW-style).
 function skillMarkdown(): string {
+	const hl = headlineSport(); // sport the free tier can query right now
 	return `# Flash Props API — Agent Guide
 
 Sports betting **player-prop lines** (over/under) unified across free books
@@ -27,16 +29,16 @@ Pre-game and live in-game. American odds. Built by Flash AI Solutions.
 | Method | Path | Purpose |
 |--------|------|---------|
 | GET | \`/api/v1/sports\` | Supported sports + which your tier can access |
-| GET | \`/api/v1/games?sport=nba\` | Today's games with props (live first) |
+| GET | \`/api/v1/games?sport=${hl}\` | Today's games with props (live first) |
 | GET | \`/api/v1/games/{eventId}/props?stats=points,rebounds\` | Props for one game |
-| GET | \`/api/v1/props?sport=nba&stat=points&limit=50\` | Market-wide scan ("flow" feed) |
+| GET | \`/api/v1/props?sport=${hl}&limit=50\` | Market-wide scan ("flow" feed) |
 | GET | \`/api/v1/me\` | Your tier, limits, and usage |
 
 ## Quickstart
 
 \`\`\`bash
 curl -H "Authorization: Bearer $FLASH_PROPS_KEY" \\
-  "${BASE}/api/v1/props?sport=mlb&limit=10"
+  "${BASE}/api/v1/props?sport=${hl}&limit=10"
 \`\`\`
 
 ## Notes for agents
@@ -44,7 +46,7 @@ curl -H "Authorization: Bearer $FLASH_PROPS_KEY" \\
 - Event ids are prefixed \`ud-\` (Underdog) or \`bv-\` (Bovada). Get them from \`/games\`.
 - **Stat keys** — NBA: \`points, rebounds, assists, threes, pra\`. MLB: \`strikeouts, hits, total_bases, home_runs, rbis\`. NFL: \`passing_yards, rushing_yards, receiving_yards, receptions, touchdowns\`. NHL: \`goals, shots, saves\`.
 - **Odds** are American (e.g. \`-115\`, \`+130\`). \`overOdds\` = higher/over, \`underOdds\` = lower/under.
-- **Free tier**: NBA only, delayed ~5 min, no live in-game props. Paid tiers unlock realtime, live lines, and all sports.
+- **Free tier**: the in-season sport only (currently \`${hl}\`), delayed ~5 min, no live in-game props. Paid tiers unlock realtime, live lines, and all sports.
 - **Rate limits**: read \`X-RateLimit-Remaining\` (per minute) and \`X-RateLimit-Daily-Remaining\`. On HTTP 429, honor \`Retry-After\`.
 - Responses carry \`delayed: true\` when served on the free-tier delay.
 `;
@@ -102,6 +104,7 @@ function tierCard(id: keyof typeof TIERS): string {
 }
 
 function landingHtml(): string {
+	const hl = headlineSport(); // sport a fresh free key can query right now
 	return `<!doctype html>
 <html lang="en">
 <head>
@@ -208,7 +211,7 @@ function landingHtml(): string {
       <div class="bar"><i></i><i></i><i></i><span>bash</span></div>
 <pre><span class="c"># Market-wide prop scan — the "flow" feed</span>
 curl -H <span class="s">"Authorization: Bearer $KEY"</span> \\
-  <span class="k">"${BASE}/api/v1/props?sport=mlb&limit=10"</span></pre>
+  <span class="k">"${BASE}/api/v1/props?sport=${hl}&limit=10"</span></pre>
     </div>
   </header>
 

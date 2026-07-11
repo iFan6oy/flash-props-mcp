@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import QRCode from 'qrcode';
 import { env } from '../env.js';
 import { TIERS, type TierId } from '../config/tiers.js';
+import { headlineSport } from '../config/sports.js';
 import { createApiKey } from '../auth/keys.js';
 import { getStripe, priceIdForTier, tierForPrice } from './stripe.js';
 import { provisionForCustomer, revokeForCustomer, setTierForCustomer } from './provision.js';
@@ -71,7 +72,7 @@ function keyPage(o: { tier: TierId; key?: string; prefix: string; created: boole
      <div class="key"><code id="k">${o.key}</code><button id="c" onclick="cp()">Copy</button></div>
      <p class="mut">Use it as a bearer token:</p>
      <pre>curl -H "Authorization: Bearer ${o.key}" \\
-  "${BASE}/api/v1/props?sport=mlb&limit=10"</pre>
+  "${BASE}/api/v1/props?sport=${headlineSport()}&limit=10"</pre>
      <a class="b" href="/docs">Open the API reference →</a>`
 	);
 }
