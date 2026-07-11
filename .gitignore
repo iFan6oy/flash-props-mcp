@@ -6,11 +6,11 @@ dist/
 .env.*
 !.env.example
 
-# local data / db
+# local data / db (anchored to repo root — must NOT match src/data/)
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
-data/
+/data/
 
 # build/temp artifacts
 *.log
