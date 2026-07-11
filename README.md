@@ -57,8 +57,12 @@ Then: `curl -H "Authorization: Bearer <key>" "http://localhost:3860/api/v1/props
 
 ## Build & deploy (VPS)
 
+**CI/CD**: push to `main` → GitHub Actions (`.github/workflows/deploy.yml`) typechecks,
+builds, ships `dist/` to the VPS over SSH, and `pm2 restart`s. No manual steps.
+Secrets: `VPS_SSH_KEY` (dedicated ed25519 deploy key), `VPS_HOST`, `VPS_USER`.
+
 Production runs the **compiled** output (`node dist/index.js`) — not tsx — to stay
-independent of Node/tsx versions. Deploy = build locally, ship the artifact:
+independent of Node/tsx versions. Manual deploy (if ever needed) = build locally, ship the artifact:
 
 ```bash
 npm run build          # tsc -> dist/ (NodeNext, .js extensions required)
