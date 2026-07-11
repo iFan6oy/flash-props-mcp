@@ -11,6 +11,7 @@ export interface KeyRecord {
 	tier: TierId;
 	label: string;
 	keyPrefix: string;
+	expiresAt: number | null; // epoch ms; null = never expires
 }
 
 // Key format: flash_<live|test>_<~32 url-safe chars>. Only the prefix is ever
@@ -26,13 +27,14 @@ export function hashKey(key: string): string {
 }
 
 export function createApiKey(
-	opts: { tier?: TierId; label?: string; mode?: 'live' | 'test'; customerId?: string } = {}
+	opts: { tier?: TierId; label?: string; mode?: 'live' | 'test'; customerId?: string; expiresAt?: number | null } = {}
 ): { record: KeyRecord; key: string } {
 	const mode = opts.mode ?? (env.NODE_ENV === 'production' ? 'live' : 'test');
 	const { key, prefix } = generateKey(mode);
 	const id = `key_${nanoid(16)}`;
 	const tier = opts.tier ?? 'free';
 	const label = opts.label ?? 'default';
+	const expiresAt = opts.expiresAt ?? null;
 	db.insert(apiKeys)
 		.values({
 			id,
@@ -42,10 +44,11 @@ export function createApiKey(
 			label,
 			active: true,
 			customerId: opts.customerId ?? null,
+			expiresAt,
 			createdAt: Date.now()
 		})
 		.run();
-	return { record: { id, tier, label, keyPrefix: prefix }, key };
+	return { record: { id, tier, label, keyPrefix: prefix, expiresAt }, key };
 }
 
 // Resolve a presented key to its record. Returns null for unknown/revoked keys.
@@ -54,7 +57,7 @@ export function resolveKey(rawKey: string): KeyRecord | null {
 	const row = db.select().from(apiKeys).where(eq(apiKeys.keyHash, hashKey(rawKey))).get();
 	if (!row || !row.active) return null;
 	db.update(apiKeys).set({ lastUsedAt: Date.now() }).where(eq(apiKeys.id, row.id)).run();
-	return { id: row.id, tier: row.tier as TierId, label: row.label, keyPrefix: row.keyPrefix };
+	return { id: row.id, tier: row.tier as TierId, label: row.label, keyPrefix: row.keyPrefix, expiresAt: row.expiresAt };
 }
 
 export function revokeKey(id: string): boolean {

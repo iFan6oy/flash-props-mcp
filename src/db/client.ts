@@ -36,7 +36,26 @@ export function ensureSchema(): void {
 			count INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY (key_id, day)
 		);
+		CREATE TABLE IF NOT EXISTS crypto_orders (
+			id TEXT PRIMARY KEY,
+			reference TEXT NOT NULL UNIQUE,
+			tier TEXT NOT NULL,
+			months INTEGER NOT NULL,
+			amount_usdc TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'pending',
+			key_id TEXT,
+			signature TEXT,
+			created_at INTEGER NOT NULL,
+			expires_at INTEGER NOT NULL,
+			paid_at INTEGER
+		);
 	`);
+	// Additive migration for the prepaid-expiry column on existing databases.
+	try {
+		sqlite.exec('ALTER TABLE api_keys ADD COLUMN expires_at INTEGER');
+	} catch {
+		/* column already exists */
+	}
 }
 
 export { sqlite };

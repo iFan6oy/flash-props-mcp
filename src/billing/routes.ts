@@ -1,9 +1,21 @@
 import { Hono } from 'hono';
+import QRCode from 'qrcode';
 import { env } from '../env.js';
 import { TIERS, type TierId } from '../config/tiers.js';
 import { createApiKey } from '../auth/keys.js';
 import { getStripe, priceIdForTier, tierForPrice } from './stripe.js';
 import { provisionForCustomer, revokeForCustomer, setTierForCustomer } from './provision.js';
+import { cryptoEnabled } from '../config/crypto.js';
+import {
+	createCryptoOrder,
+	getOrder,
+	findPayment,
+	provisionCryptoKey,
+	expireIfStale,
+	solanaPayUrl,
+	monthsForPeriod,
+	type CryptoOrder
+} from './crypto.js';
 
 export const billing = new Hono();
 
@@ -144,4 +156,93 @@ billing.post('/webhook', async (c) => {
 			break;
 	}
 	return c.json({ received: true });
+});
+
+// --- Crypto checkout (Solana Pay / USDC) -----------------------------------
+async function cryptoPayPage(order: CryptoOrder): Promise<string> {
+	const url = solanaPayUrl(order);
+	const qr = await QRCode.toString(url, { type: 'svg', margin: 1, width: 220 });
+	const t = TIERS[order.tier as TierId];
+	return page(
+		'Pay with crypto',
+		`<h1>Pay with USDC</h1>
+     <p class="mut">${t.name} · ${order.months} month${order.months > 1 ? 's' : ''} prepaid. Send exactly:</p>
+     <div style="font-size:34px;font-weight:850;margin:4px 0 14px">${order.amountUsdc} <span style="font-size:15px;color:#9aa3b6">USDC</span></div>
+     <div style="background:#fff;border-radius:12px;padding:10px;width:240px;margin:0 auto 14px">${qr}</div>
+     <p class="mut">Scan with Phantom / Solflare (Solana), or send USDC to:</p>
+     <div class="key"><code id="addr">${env.RECEIVE_WALLET}</code><button id="c" onclick="navigator.clipboard.writeText(document.getElementById('addr').innerText);this.innerText='Copied';">Copy</button></div>
+     <div id="status" class="warn">Waiting for payment… (order expires in 30 min)</div>
+     <div id="done" style="display:none"></div>
+     <script>
+       const oid=${JSON.stringify(order.id)};
+       async function poll(){
+         try{
+           const r=await fetch('/billing/crypto/status?order='+encodeURIComponent(oid));
+           const d=await r.json();
+           if(d.status==='paid'){
+             document.getElementById('status').style.display='none';
+             const done=document.getElementById('done'); done.style.display='block';
+             done.innerHTML = d.key
+               ? '<h3>Paid ✓ — your API key (shown once)</h3><div class="key"><code>'+d.key+'</code></div><p class="mut">Access expires '+(d.expiresAt||'')+'. Renew any time.</p><a class="b" href="/docs">Open the docs →</a>'
+               : '<h3>Paid ✓</h3><p class="mut">A key was already issued for this order.</p><a class="b" href="/docs">Docs →</a>';
+             return;
+           }
+           if(d.status==='expired'){ document.getElementById('status').innerHTML='This order expired. <a class="b" href="/#pricing">Start over</a>'; return; }
+         }catch(e){}
+         setTimeout(poll,5000);
+       }
+       setTimeout(poll,4000);
+     </script>`
+	);
+}
+
+billing.get('/crypto', async (c) => {
+	if (!cryptoEnabled()) {
+		return c.html(
+			page(
+				'Crypto not configured',
+				`<h1>Crypto checkout isn't enabled yet</h1><p class="mut">Set <code>RECEIVE_WALLET</code> (and a Solana RPC) on the server to accept USDC.</p><a class="b" href="/#pricing">← Back to pricing</a>`
+			),
+			503
+		);
+	}
+	const tier = (c.req.query('tier') || '') as TierId;
+	const periodId = c.req.query('period') || 'month';
+	if (tier !== 'starter' && tier !== 'pro') {
+		return c.json({ error: 'bad_tier', message: 'tier must be starter or pro' }, 400);
+	}
+	const months = monthsForPeriod(periodId);
+	if (!months) return c.json({ error: 'bad_period', message: 'period must be month or year' }, 400);
+	const order = createCryptoOrder(tier, months);
+	if ('error' in order) {
+		return c.html(page('Unavailable', `<h1>Can't create the order</h1><p class="mut">${order.error}</p>`), 503);
+	}
+	return c.html(await cryptoPayPage(order));
+});
+
+billing.get('/crypto/status', async (c) => {
+	const id = c.req.query('order');
+	if (!id) return c.json({ error: 'missing_order' }, 400);
+	let order = getOrder(id);
+	if (!order) return c.json({ error: 'not_found' }, 404);
+	if (order.status === 'paid') return c.json({ status: 'paid', tier: order.tier, created: false });
+	order = expireIfStale(order);
+	if (order.status === 'expired') return c.json({ status: 'expired' });
+	try {
+		const sig = await findPayment(order);
+		if (!sig) return c.json({ status: 'pending' });
+		const prov = provisionCryptoKey(order, sig);
+		return c.json({
+			status: 'paid',
+			tier: order.tier,
+			key: prov.key ?? null,
+			prefix: prov.prefix,
+			created: prov.created,
+			expiresAt: new Date(prov.expiresAt).toISOString(),
+			signature: sig
+		});
+	} catch {
+		// Transient RPC error — tell the client to keep polling.
+		return c.json({ status: 'pending', note: 'verifying' });
+	}
 });

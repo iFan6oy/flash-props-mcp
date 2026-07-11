@@ -32,6 +32,16 @@ export const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
 	if (!key) {
 		return c.json({ error: 'invalid_api_key', message: 'API key is invalid, revoked, or inactive.' }, 401);
 	}
+	if (key.expiresAt !== null && Date.now() > key.expiresAt) {
+		return c.json(
+			{
+				error: 'key_expired',
+				message: 'This prepaid key has expired. Renew with crypto at /billing/crypto or subscribe at /.',
+				expiredAt: new Date(key.expiresAt).toISOString()
+			},
+			402
+		);
+	}
 	c.set('apiKey', key);
 	c.set('tier', tierOf(key.tier));
 	await next();

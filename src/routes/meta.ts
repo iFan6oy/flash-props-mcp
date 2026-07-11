@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { env } from '../env.js';
 import { TIERS } from '../config/tiers.js';
+import { cryptoEnabled, cryptoPerMonthUsdc, discountPct } from '../config/crypto.js';
 
 export const meta = new Hono();
 
@@ -19,7 +20,7 @@ Pre-game and live in-game. American odds. Built by Flash AI Solutions.
 - **Auth:** \`Authorization: Bearer <key>\` (also accepts \`X-API-Key:\` or \`?api_key=\`)
 - **Spec:** ${BASE}/openapi.json (OpenAPI 3.1)
 - **MCP server:** ${BASE}/mcp (streamable HTTP; send your key as \`Authorization: Bearer\`). Tools: \`list_sports\`, \`list_games\`, \`get_game_props\`, \`scan_props\`, \`find_game\`.
-- **Get a key:** ${BASE}/
+- **Get a key:** ${BASE}/ (free tier self-serve; paid via Stripe card or discounted USDC/crypto)
 
 ## Endpoints
 
@@ -92,6 +93,11 @@ function tierCard(id: keyof typeof TIERS): string {
     <p class="blurb">${t.blurb}</p>
     <ul>${t.features.map((f) => `<li>${f}</li>`).join('')}</ul>
     <a class="tier-cta" href="${href}">${cta}</a>
+    ${
+			(id === 'starter' || id === 'pro') && cryptoEnabled()
+				? `<a class="tier-crypto" href="/billing/crypto?tier=${id}&period=month">◎ Pay with crypto · $${cryptoPerMonthUsdc(id)}/mo <b>save ${discountPct()}%</b></a>`
+				: ''
+		}
   </div>`;
 }
 
@@ -170,6 +176,8 @@ function landingHtml(): string {
     border-bottom:2px solid var(--green);transform:rotate(-45deg)}
   .tier-cta{display:block;text-align:center;padding:11px;border-radius:10px;border:1px solid var(--line);font-weight:700;font-size:14px}
   .tier.featured .tier-cta{background:linear-gradient(135deg,var(--flash),var(--flash2));color:#1a1206;border:0}
+  .tier-crypto{display:block;text-align:center;margin-top:9px;font-size:12.5px;color:var(--muted);text-decoration:none}
+  .tier-crypto b{color:var(--green)} .tier-crypto:hover{color:var(--ink)}
   footer{border-top:1px solid var(--line);margin-top:40px;padding:30px 0 50px;color:var(--muted);
     display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:14px}
   @media(max-width:640px){nav .links a.hideM{display:none}}
@@ -230,7 +238,9 @@ curl -H <span class="s">"Authorization: Bearer $KEY"</span> \\
 
   <section id="pricing">
     <h2>Simple, honest pricing</h2>
-    <p class="lead">Free data sources under the hood, so the free tier is genuinely free. Upgrade for realtime, live in-game lines, and every sport.</p>
+    <p class="lead">Free data sources under the hood, so the free tier is genuinely free. Upgrade for realtime, live in-game lines, and every sport.${
+			cryptoEnabled() ? ` <strong style="color:var(--flash2)">Pay with USDC and save ${discountPct()}%.</strong>` : ''
+		}</p>
     <div class="tiers">
       ${tierCard('free')}
       ${tierCard('starter')}

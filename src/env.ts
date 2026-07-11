@@ -20,7 +20,13 @@ const EnvSchema = z.object({
 	STRIPE_SECRET_KEY: z.string().default(''),
 	STRIPE_WEBHOOK_SECRET: z.string().default(''),
 	STRIPE_PRICE_STARTER: z.string().default(''),
-	STRIPE_PRICE_PRO: z.string().default('')
+	STRIPE_PRICE_PRO: z.string().default(''),
+	// Crypto payments (Solana Pay, USDC). Crypto checkout is enabled only when
+	// RECEIVE_WALLET is set. Revenue lands in RECEIVE_WALLET.
+	SOLANA_RPC_URL: z.string().url().default('https://api.mainnet-beta.solana.com'),
+	RECEIVE_WALLET: z.string().default(''),
+	USDC_MINT: z.string().default('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'),
+	CRYPTO_DISCOUNT_PCT: z.coerce.number().min(0).max(90).default(10)
 });
 
 export const env = EnvSchema.parse(process.env);
