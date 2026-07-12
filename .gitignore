@@ -19,3 +19,6 @@ dist/
 *.bak-*
 .mcp_h.txt
 .DS_Store
+
+# hero video assets — placed on VPS via scp, not tracked
+assets/

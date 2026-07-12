@@ -1,4 +1,7 @@
 import { Hono } from 'hono';
+import { createReadStream, statSync, existsSync } from 'node:fs';
+import { Readable } from 'node:stream';
+import { fileURLToPath } from 'node:url';
 import { env } from '../env.js';
 import { TIERS } from '../config/tiers.js';
 import { headlineSport } from '../config/sports.js';
@@ -7,6 +10,49 @@ import { cryptoEnabled, cryptoPerMonthUsdc, discountPct } from '../config/crypto
 export const meta = new Hono();
 
 const BASE = env.PUBLIC_BASE_URL;
+
+// --- Static hero assets (video + poster) -----------------------------------
+// Live in /opt/flash-props-api/assets (OUTSIDE dist, so CI deploys that only
+// replace dist/ never wipe them). Resolved relative to this compiled module.
+const ASSET_TYPES: Record<string, string> = { 'hero.mp4': 'video/mp4', 'hero-poster.jpg': 'image/jpeg' };
+function assetPath(name: string): string {
+	return fileURLToPath(new URL('../../assets/' + name, import.meta.url));
+}
+function heroVideoReady(): boolean {
+	try {
+		return existsSync(assetPath('hero.mp4'));
+	} catch {
+		return false;
+	}
+}
+
+// Range-aware static serving (Safari refuses to play a video without 206 range
+// support). Whitelisted names only — no path traversal.
+meta.get('/assets/:name', (c) => {
+	const name = c.req.param('name');
+	if (!name) return c.notFound();
+	const type = ASSET_TYPES[name];
+	if (!type) return c.notFound();
+	const path = assetPath(name);
+	if (!existsSync(path)) return c.notFound();
+	const size = statSync(path).size;
+	c.header('Content-Type', type);
+	c.header('Accept-Ranges', 'bytes');
+	c.header('Cache-Control', 'public, max-age=604800');
+	const range = c.req.header('range');
+	if (range) {
+		const m = /bytes=(\d+)-(\d*)/.exec(range);
+		let start = m && m[1] ? parseInt(m[1], 10) : 0;
+		let end = m && m[2] ? parseInt(m[2], 10) : size - 1;
+		if (!Number.isFinite(start) || start < 0 || start >= size) start = 0;
+		if (!Number.isFinite(end) || end >= size) end = size - 1;
+		c.header('Content-Range', `bytes ${start}-${end}/${size}`);
+		c.header('Content-Length', String(end - start + 1));
+		return c.body(Readable.toWeb(createReadStream(path, { start, end })) as unknown as ReadableStream, 206);
+	}
+	c.header('Content-Length', String(size));
+	return c.body(Readable.toWeb(createReadStream(path)) as unknown as ReadableStream, 200);
+});
 
 // --- Agent-native discovery -------------------------------------------------
 // skill.md: instructions an LLM/agent fetches to learn the API (UW-style).
@@ -377,7 +423,7 @@ function landingHtml(): string {
 </head>
 <body>
 <canvas id="fx"></canvas>
-<video id="herovid" autoplay muted loop playsinline preload="none"></video>
+<video id="herovid" autoplay muted loop playsinline preload="auto" poster="/assets/hero-poster.jpg"></video>
 <div class="veil"></div>
 <div class="grain"></div>
 
@@ -495,7 +541,7 @@ curl -H <span class="s">"Authorization: Bearer $KEY"</span> \\
     reveals.forEach(function(el){io.observe(el);});
   } else { reveals.forEach(function(el){el.classList.add('in');}); }
 
-  var HERO_VIDEO_SRC = "";
+  var HERO_VIDEO_SRC = "${heroVideoReady() ? '/assets/hero.mp4?v=1' : ''}";
   if(HERO_VIDEO_SRC){
     var v=document.getElementById('herovid');
     v.src=HERO_VIDEO_SRC; v.style.display='block';
