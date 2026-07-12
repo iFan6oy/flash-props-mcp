@@ -22,10 +22,13 @@ const PHOTO_TTL_MS = 10 * 60 * 1000;
 
 // Underdog sport_id (uppercased) → our catalog sport id. Only leagues we sell
 // are mapped; anything else (tennis, PGA, MMA, esports, NPB, CFL) is skipped.
-// Note: Underdog labels summer hoops "BASKETBALL" (WNBA/Summer League), so we
-// only accept the explicit "NBA" label to avoid mislabeling those as NBA.
+// Underdog labels Summer League + WNBA under one "BASKETBALL" sport_id — we
+// surface that as its OWN `basketball` id (NOT `nba`, to avoid mislabeling), so
+// summer hoops props are live year-round instead of dropped.
 const UD_SPORT: Record<string, string> = {
 	NBA: 'nba',
+	BASKETBALL: 'basketball',
+	WNBA: 'basketball',
 	NFL: 'nfl',
 	MLB: 'mlb',
 	NHL: 'nhl',

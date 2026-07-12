@@ -2,6 +2,7 @@
 // on (a) the caller's tier and (b) whether upstream books have games posted.
 export const SPORT_CATALOG: { id: string; name: string }[] = [
 	{ id: 'nba', name: 'NBA Basketball' },
+	{ id: 'basketball', name: 'Basketball (Summer League / WNBA)' },
 	{ id: 'mlb', name: 'MLB Baseball' },
 	{ id: 'nfl', name: 'NFL Football' },
 	{ id: 'nhl', name: 'NHL Hockey' },
@@ -19,6 +20,7 @@ export const SPORT_IDS = SPORT_CATALOG.map((s) => s.id);
 // and the DATA served is always real — this just picks which door free opens.
 const SEASON_MONTHS: Record<string, number[]> = {
 	nba: [10, 11, 12, 1, 2, 3, 4, 5, 6],
+	basketball: [5, 6, 7, 8, 9], // WNBA (May–Sep) + NBA Summer League (Jul)
 	mlb: [3, 4, 5, 6, 7, 8, 9, 10],
 	nfl: [9, 10, 11, 12, 1, 2],
 	nhl: [10, 11, 12, 1, 2, 3, 4, 5, 6],
@@ -28,9 +30,10 @@ const SEASON_MONTHS: Record<string, number[]> = {
 };
 
 // When several leagues overlap, the free tier features the first one in this
-// priority order that is in season. NBA is the marquee; MLB anchors the summer
-// when NBA is dark; NFL takes the early-fall gap before NBA tips off.
-const HEADLINE_PRIORITY = ['nba', 'nfl', 'mlb', 'nhl', 'ncaab', 'ncaaf', 'soccer'];
+// priority order that is in season. NBA is the marquee; summer-league/WNBA
+// basketball carries the hoops-hungry summer when the NBA is dark; NFL takes the
+// early-fall gap; MLB anchors otherwise.
+const HEADLINE_PRIORITY = ['nba', 'basketball', 'nfl', 'mlb', 'nhl', 'ncaab', 'ncaaf', 'soccer'];
 
 export function isInSeason(sport: string, now: Date = new Date()): boolean {
 	const month = now.getMonth() + 1; // getMonth() is 0-indexed (0 = January)
