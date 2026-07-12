@@ -64,3 +64,42 @@ export function revokeKey(id: string): boolean {
 	const res = db.update(apiKeys).set({ active: false }).where(eq(apiKeys.id, id)).run();
 	return res.changes > 0;
 }
+
+export type AuthResult =
+	| { ok: true; key: KeyRecord }
+	| { ok: false; status: 401 | 402; body: { error: string; message: string; expiredAt?: string } };
+
+// Single source of truth for authenticating a presented key: presence → validity
+// → prepaid expiry. BOTH the REST middleware and the MCP handler call this so the
+// two transports enforce identical rules. (They diverged before: REST checked
+// `expiresAt` but MCP called `resolveKey` directly, so an expired prepaid crypto
+// key kept working forever over MCP. Centralizing here closes that gap for good.)
+export function authenticateKey(raw: string | null): AuthResult {
+	if (!raw) {
+		return {
+			ok: false,
+			status: 401,
+			body: {
+				error: 'missing_api_key',
+				message:
+					'Provide your key via `Authorization: Bearer <key>`, the `X-API-Key` header, or `?api_key=`. Get one at /.'
+			}
+		};
+	}
+	const key = resolveKey(raw);
+	if (!key) {
+		return { ok: false, status: 401, body: { error: 'invalid_api_key', message: 'API key is invalid, revoked, or inactive.' } };
+	}
+	if (key.expiresAt !== null && Date.now() > key.expiresAt) {
+		return {
+			ok: false,
+			status: 402,
+			body: {
+				error: 'key_expired',
+				message: 'This prepaid key has expired. Renew with crypto at /billing/crypto or subscribe at /.',
+				expiredAt: new Date(key.expiresAt).toISOString()
+			}
+		};
+	}
+	return { ok: true, key };
+}

@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { randomUUID } from 'node:crypto';
 import { StreamableHTTPTransport } from '@hono/mcp';
 import type { Context } from 'hono';
-import { resolveKey } from '../auth/keys.js';
+import { authenticateKey } from '../auth/keys.js';
 import { tierOf } from '../config/tiers.js';
 import { checkPerMinute, sweep } from '../rate-limit/limiter.js';
 import { bumpUsage } from '../db/usage.js';
@@ -22,14 +22,11 @@ function extractKey(c: Context): string | null {
 }
 
 mcpApp.all('/', async (c) => {
-	const raw = extractKey(c);
-	const key = raw ? resolveKey(raw) : null;
-	if (!key) {
-		return c.json(
-			{ error: 'invalid_api_key', message: 'MCP requires a valid Flash Props API key via `Authorization: Bearer <key>`.' },
-			401
-		);
-	}
+	// Same validity + prepaid-expiry enforcement as REST (shared authenticateKey),
+	// so an expired crypto key no longer keeps working over MCP.
+	const auth = authenticateKey(extractKey(c));
+	if (!auth.ok) return c.json(auth.body, auth.status);
+	const key = auth.key;
 	const tier = tierOf(key.tier);
 
 	// Meter actual JSON-RPC calls (POST), not SSE stream opens / session closes.

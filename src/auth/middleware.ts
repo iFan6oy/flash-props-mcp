@@ -1,7 +1,7 @@
 import { createMiddleware } from 'hono/factory';
 import type { Context } from 'hono';
 import type { AppEnv } from '../app-env.js';
-import { resolveKey } from './keys.js';
+import { authenticateKey } from './keys.js';
 import { tierOf } from '../config/tiers.js';
 
 function extractKey(c: Context): string | null {
@@ -15,34 +15,11 @@ function extractKey(c: Context): string | null {
 }
 
 // Resolves the presented API key and stashes {apiKey, tier} on the context.
+// Validity + expiry live in authenticateKey (shared with the MCP handler).
 export const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
-	const raw = extractKey(c);
-	if (!raw) {
-		return c.json(
-			{
-				error: 'missing_api_key',
-				message:
-					'Provide your key via `Authorization: Bearer <key>`, the `X-API-Key` header, or `?api_key=`. Get one at ' +
-					'/.'
-			},
-			401
-		);
-	}
-	const key = resolveKey(raw);
-	if (!key) {
-		return c.json({ error: 'invalid_api_key', message: 'API key is invalid, revoked, or inactive.' }, 401);
-	}
-	if (key.expiresAt !== null && Date.now() > key.expiresAt) {
-		return c.json(
-			{
-				error: 'key_expired',
-				message: 'This prepaid key has expired. Renew with crypto at /billing/crypto or subscribe at /.',
-				expiredAt: new Date(key.expiresAt).toISOString()
-			},
-			402
-		);
-	}
-	c.set('apiKey', key);
-	c.set('tier', tierOf(key.tier));
+	const auth = authenticateKey(extractKey(c));
+	if (!auth.ok) return c.json(auth.body, auth.status);
+	c.set('apiKey', auth.key);
+	c.set('tier', tierOf(auth.key.tier));
 	await next();
 });
