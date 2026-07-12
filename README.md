@@ -1,8 +1,9 @@
 # Flash Props API
 
 Sellable, agent-native sports-betting **player-props** data API by Flash AI Solutions.
-Unifies free books (Underdog Fantasy + Bovada) into one clean feed — pre-game and
-live in-game props for NBA, MLB, NFL, NHL, NCAA and soccer. American odds.
+Unifies the props board into one clean REST + MCP feed — pre-game props for MLB, NFL,
+NBA, NHL, NCAA, soccer, tennis, and esports (CS2, Valorant, Dota 2, Call of Duty).
+American odds. Coverage varies by sport, season, and upstream availability.
 
 Modeled on what Unusual Whales did: a real product with token auth, tiered rate
 limits, Stripe billing, an OpenAPI spec, a public storefront, and an MCP server so
@@ -15,7 +16,7 @@ AI agents can consume it directly.
 - **Drizzle + better-sqlite3** — API keys (HMAC-hashed) + usage counters
 - **Stripe** — Checkout + webhook subscription lifecycle
 - **@hono/mcp + @modelcontextprotocol/sdk** — Streamable-HTTP MCP server at `/mcp`
-- Data: free upstreams only (Underdog + Bovada), so it costs $0 to run.
+- Data: free upstreams only, so it costs $0 to run. (Underdog is the live source today; a Bovada adapter exists for live in-game lines but currently returns empty from the VPS.)
 
 ## Endpoints
 
@@ -41,9 +42,10 @@ Auth: `Authorization: Bearer <key>` (also `X-API-Key:` or `?api_key=`).
 
 ## Tiers
 
-`src/config/tiers.ts` — Free (NBA, delayed, 250/day) · Starter ($29, NBA+MLB realtime,
-10k/day) · Pro ($99, all sports + live, 100k/day) · Enterprise (custom). Free tier gets
-pre-game only and data flagged `delayed`; paid unlocks realtime + live in-game lines.
+`src/config/tiers.ts` — Free (in-season sport, 250/day, 25-row scans) · Starter ($15,
+all active sports, 10k/day, 100-row scans) · Pro ($39, all sports, 100k/day, 500-row
+scans) · Enterprise (custom). Tiers differ by request volume, scan size, and sport
+breadth — every tier serves the same pre-game snapshot (no realtime/delayed split).
 
 ## Run locally
 

@@ -166,7 +166,7 @@ v1.openapi(
 		tags: ['Props'],
 		summary: 'Market-wide props scan',
 		description:
-			'Every player prop across today\'s games for a sport, flattened into rows — the "flow" feed. Live props first. Row count is capped by your tier.',
+			'All player props across today\'s games for a sport, flattened into rows — the "flow" feed. Row count is capped by your tier.',
 		security: [{ BearerAuth: [] }],
 		request: { query: ScanQuery },
 		responses: {

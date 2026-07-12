@@ -22,7 +22,7 @@ const denySport = (sport: string, tier: Tier) => {
 const resolveSport = (sport: string | undefined) => sport ?? headlineSport();
 
 // Build a per-request MCP server with the caller's tier baked in, so every
-// tool respects that key's sport access, realtime/live gating, and scan caps.
+// tool respects that key's sport access, tier gating, and scan caps.
 export function buildMcpServer(tier: Tier): McpServer {
 	const server = new McpServer({ name: 'flash-props-api', version: '0.1.0' });
 
@@ -77,7 +77,7 @@ export function buildMcpServer(tier: Tier): McpServer {
 		{
 			title: 'Scan props (flow feed)',
 			description:
-				"Market-wide scan: every player prop across today's games for a sport, flattened into rows. Optionally filter by a single stat.",
+				"Market-wide scan: all player props across today's games for a sport, flattened into rows. Optionally filter by a single stat.",
 			inputSchema: {
 				sport: z.string().optional().describe('Sport id. Defaults to the in-season sport.'),
 				stat: z.string().optional().describe('Filter to one stat, e.g. strikeouts'),

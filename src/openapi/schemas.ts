@@ -18,7 +18,7 @@ const playerPropFields = {
 	line: z.number().openapi({ example: 24.5, description: 'The posted over/under line.' }),
 	overOdds: z.number().optional().openapi({ example: -115, description: 'American odds for the over / higher.' }),
 	underOdds: z.number().optional().openapi({ example: -105, description: 'American odds for the under / lower.' }),
-	bookCount: z.number().int().openapi({ example: 1, description: 'How many books contributed (consensus confidence).' }),
+	bookCount: z.number().int().openapi({ example: 1, description: 'Number of sources contributing this line (currently 1).' }),
 	photoUrl: z.string().optional().openapi({ example: 'https://cdn.underdogfantasy.com/....png' }),
 	playerId: z.string().optional(),
 	liveValue: z.number().optional().openapi({ description: 'Current in-game stat count (live games only).' }),
@@ -48,9 +48,9 @@ export const PropsResultSchema = z
 		awayTeam: z.string(),
 		startTime: z.string(),
 		props: z.array(PlayerPropSchema),
-		sources: z.array(z.string()).openapi({ example: ['bovada'] }),
+		sources: z.array(z.string()).openapi({ example: ['underdog'] }),
 		fetchedAt: z.number().openapi({ description: 'Epoch ms when the upstream snapshot was taken.' }),
-		delayed: z.boolean().openapi({ description: 'True when served on a delay (free tier).' })
+		delayed: z.boolean().openapi({ description: 'Reserved. Always false today — every tier serves the same live snapshot.' })
 	})
 	.openapi('PropsResult');
 

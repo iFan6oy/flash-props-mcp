@@ -47,8 +47,9 @@ app.doc31('/openapi.json', {
 		title: 'Flash Props API',
 		version: '0.1.0',
 		description:
-			'Sports betting player-prop lines across free books (Underdog, Bovada), unified into one clean feed. ' +
-			'Pre-game and live in-game props for NBA, MLB, NFL, NHL, NCAA and soccer. Built by Flash AI Solutions.'
+			'Player-prop lines (over/under) from the props board, unified into one clean REST + MCP feed. ' +
+			'Pre-game props across MLB, NFL, NBA, NHL, NCAA, soccer, tennis, and esports (CS2, Valorant, Dota 2, Call of Duty). ' +
+			'Coverage varies by sport, season, and upstream availability. Built by Flash AI Solutions.'
 	},
 	servers: [{ url: env.PUBLIC_BASE_URL, description: env.NODE_ENV }],
 	security: [{ BearerAuth: [] }]

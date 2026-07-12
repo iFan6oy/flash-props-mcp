@@ -1,6 +1,8 @@
-// Tier gating applied to data before it leaves the API. The sellable
-// difference: paid tiers get realtime + live in-game props; the free tier gets
-// pre-game lines only, flagged `delayed`.
+// Tier gating applied to data before it leaves the API. Tiers differ by request
+// volume, scan size, and sport breadth — NOT data freshness (every tier gets the
+// same live snapshot). The live-filter + `delayed` flag below are retained for
+// schema stability and future use; today no live source is reachable and every
+// tier is realtime, so `delayed` is always false and nothing is filtered out.
 import type { Tier } from '../config/tiers.js';
 import type { GameRef, PropsResult, ScanRow } from '../data/types.js';
 

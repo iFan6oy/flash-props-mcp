@@ -4,7 +4,7 @@ import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { env } from '../env.js';
 import { TIERS } from '../config/tiers.js';
-import { headlineSport } from '../config/sports.js';
+import { headlineSport, SPORT_CATALOG } from '../config/sports.js';
 import { cryptoEnabled, cryptoPerMonthUsdc, discountPct } from '../config/crypto.js';
 
 export const meta = new Hono();
@@ -61,9 +61,10 @@ function skillMarkdown(): string {
 	const hl = headlineSport(); // sport the free tier can query right now
 	return `# Flash Props API — Agent Guide
 
-Sports betting **player-prop lines** (over/under) unified across free books
-(Underdog, Bovada) into one clean feed. NBA, MLB, NFL, NHL, NCAA, soccer.
-Pre-game and live in-game. American odds. Built by Flash AI Solutions.
+Sports betting **player-prop lines** (over/under) from the props board, unified
+into one clean feed. MLB, NFL, NBA, NHL, NCAA, soccer, tennis, and esports
+(CS2, Valorant, Dota 2, Call of Duty). Pre-game lines, American odds. Coverage
+varies by sport, season, and upstream availability. Built by Flash AI Solutions.
 
 - **Base URL:** ${BASE}
 - **Auth:** \`Authorization: Bearer <key>\` (also accepts \`X-API-Key:\` or \`?api_key=\`)
@@ -91,11 +92,12 @@ curl -H "Authorization: Bearer $FLASH_PROPS_KEY" \\
 ## Notes for agents
 
 - Event ids are prefixed \`ud-\` (Underdog) or \`bv-\` (Bovada). Get them from \`/games\`.
-- **Stat keys** — NBA: \`points, rebounds, assists, threes, pra\`. MLB: \`strikeouts, hits, total_bases, home_runs, rbis\`. NFL: \`passing_yards, rushing_yards, receiving_yards, receptions, touchdowns\`. NHL: \`goals, shots, saves\`.
+- **Stat keys** — NBA: \`points, rebounds, assists, threes, pra\`. MLB: \`strikeouts, hits, total_bases, home_runs, rbis\`. NFL: \`passing_yards, rushing_yards, receiving_yards, receptions, touchdowns\`. NHL: \`goals, shots, saves\`. Esports use descriptive keys like \`kills_on_maps_1_2\`, \`headshots_on_maps_1_2\`, \`fantasy_points_on_games_1_3\`. Any stat not listed passes through as a normalized snake_case key.
 - **Odds** are American (e.g. \`-115\`, \`+130\`). \`overOdds\` = higher/over, \`underOdds\` = lower/under.
-- **Free tier**: the in-season sport only (currently \`${hl}\`), delayed ~5 min, no live in-game props. Paid tiers unlock realtime, live lines, and all sports.
+- **Free tier**: the in-season headline sport only (currently \`${hl}\`), 250 requests/day, small scans. Paid tiers unlock every active sport (incl. tennis + esports), higher request volume, and bigger scans.
+- **Coverage varies** by sport, season, and upstream availability — call \`/api/v1/sports\` for what's enabled on your tier and check whether \`/games\` is non-empty before building on a given sport.
 - **Rate limits**: read \`X-RateLimit-Remaining\` (per minute) and \`X-RateLimit-Daily-Remaining\`. On HTTP 429, honor \`Retry-After\`.
-- Responses carry \`delayed: true\` when served on the free-tier delay.
+- Lines refresh about every 5 minutes; \`fetchedAt\` (epoch ms) tells you how fresh a snapshot is.
 `;
 }
 
@@ -103,7 +105,7 @@ curl -H "Authorization: Bearer $FLASH_PROPS_KEY" \\
 function llmsTxt(): string {
 	return `# Flash Props API
 
-> Sports betting player-prop lines (over/under) across free books, unified into one API. NBA/MLB/NFL/NHL/NCAA/soccer, pre-game + live.
+> Sports betting player-prop lines (over/under) from the props board, unified into one API. MLB/NFL/NBA/NHL/NCAA/soccer/tennis/esports, pre-game lines. Coverage varies by sport and season.
 
 ## Docs
 - [Agent guide](${BASE}/skill.md): how to call the API, endpoints, stat keys
@@ -178,14 +180,14 @@ function connectHtml(): string {
 <div class="wrap">
   <nav><a class="logo" href="/"><img src="${BRAND_LOGO}" alt=""/> Flash Props API</a><a class="btn" href="/billing/free">Get a free key</a></nav>
   <header>
-    <h1>Put live props <span class="a">inside Claude.</span></h1>
+    <h1>Put the props board <span class="a">inside Claude.</span></h1>
     <p class="sub">Connect the Flash Props MCP server and ask Claude (or Cursor, or any MCP client) about tonight's board in plain English. 30 seconds, no code.</p>
     <a class="btn" href="/billing/free">Get a free key →</a>
   </header>
 
   <div class="step">
     <h2><span class="num">1</span> Get an API key</h2>
-    <p>Grab a <a style="color:var(--flash2)" href="/billing/free">free key</a> (NBA, delayed) or a <a style="color:var(--flash2)" href="/#pricing">paid key</a> (realtime, all sports, live in-game). You'll paste it into the config below in place of <code style="color:var(--flash2);font-family:var(--mono)">YOUR_KEY</code>.</p>
+    <p>Grab a <a style="color:var(--flash2)" href="/billing/free">free key</a> (in-season sport) or a <a style="color:var(--flash2)" href="/#pricing">paid key</a> (all sports, including tennis and esports). You'll paste it into the config below in place of <code style="color:var(--flash2);font-family:var(--mono)">YOUR_KEY</code>.</p>
   </div>
 
   <div class="step">
@@ -208,10 +210,10 @@ function connectHtml(): string {
     <p>Claude now has these tools:</p>
     <div class="tools"><span class="chip">list_sports</span><span class="chip">list_games</span><span class="chip">get_game_props</span><span class="chip">scan_props</span><span class="chip">find_game</span></div>
     <ul class="prompts" style="margin-top:16px">
-      <li>"<code>What are tonight's NBA points props?</code>"</li>
-      <li>"<code>Scan MLB strikeout props and show the top lines.</code>"</li>
-      <li>"<code>Pull the props for Lakers vs Nuggets.</code>"</li>
-      <li>"<code>Which players have assist props over 8.5 tonight?</code>"</li>
+      <li>"<code>Scan tonight's MLB strikeout props and show the top lines.</code>"</li>
+      <li>"<code>What are the CS2 kills props on maps 1-2?</code>"</li>
+      <li>"<code>Pull the CoD props for tonight's matches.</code>"</li>
+      <li>"<code>Which NFL players have receiving yards props over 60.5?</code>"</li>
     </ul>
   </div>
 
@@ -262,18 +264,18 @@ function tierCard(id: keyof typeof TIERS): string {
 
 function landingHtml(): string {
 	const hl = headlineSport(); // sport a fresh free key can query right now
-	const sportCount = 6; // real leagues covered (basketball/mlb/nfl/nhl/ncaa/soccer)
+	const sportCount = SPORT_CATALOG.length; // stays honest as coverage changes
 	return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Flash Props API — Sports Props Data for Developers</title>
-<meta name="description" content="Live sports betting player-prop lines, unified into one fast API and MCP server. NBA, MLB, NFL, NHL, NCAA and soccer." />
+<meta name="description" content="Sports betting player-prop lines, unified into one fast API and MCP server. MLB, NFL, NBA, NHL, NCAA, soccer, tennis, and esports." />
 <meta name="theme-color" content="#07080c" />
 <meta property="og:type" content="website" /><meta property="og:url" content="${BASE}/" />
-<meta property="og:title" content="Flash Props API — every player prop, one API" />
-<meta property="og:description" content="Realtime and live player props across major sports, normalized for developers." />
+<meta property="og:title" content="Flash Props API — the props board, one API" />
+<meta property="og:description" content="Clean player-prop data across major sports and esports, one API and MCP server for developers." />
 <meta name="twitter:card" content="summary" /><link rel="canonical" href="${BASE}/" /><link rel="icon" type="image/png" href="${BRAND_LOGO}" />
 <style>
   :root{
@@ -457,9 +459,9 @@ function landingHtml(): string {
 
 <header class="hero wrap">
   <div class="kicker" id="kicker">Jumper. <b>Catch.</b> Base hit.</div>
-  <div class="pill"><span class="g"></span> Live now · basketball · MLB · NFL · NHL · NCAA · soccer</div>
-  <h1 class="big">Every player prop.<br><span class="accent">One API. Zero scraping.</span></h1>
-  <p class="sub">Player props from multiple books, normalized into one API. REST and MCP access for NBA, MLB, NFL, NHL, NCAA and soccer. Test it free before paying.</p>
+  <div class="pill"><span class="g"></span> The board · MLB · NFL · soccer · tennis · CS2 · Valorant · Dota 2 · CoD</div>
+  <h1 class="big">The props board.<br><span class="accent">One API. Zero scraping.</span></h1>
+  <p class="sub">Clean player-prop data, one API and MCP server. Pre-game lines across MLB, NFL, NBA, NHL, NCAA, soccer, tennis, and esports. Test it free before paying.</p>
   <div class="cta">
     <a class="btn" href="/billing/free">Get a free key</a>
     <a class="btn ghost" href="/docs">View API docs →</a>
@@ -475,12 +477,12 @@ curl -H <span class="s">"Authorization: Bearer $KEY"</span> \\
 
 <section class="band">
   <div class="wrap">
-    <ul class="coverage reveal" aria-label="Supported sports"><li><i></i>NBA</li><li><i></i>MLB</li><li><i></i>NFL</li><li><i></i>NHL</li><li><i></i>NCAA</li><li><i></i>SOCCER</li></ul>
+    <ul class="coverage reveal" aria-label="Supported sports"><li><i></i>MLB</li><li><i></i>NFL</li><li><i></i>NBA</li><li><i></i>NHL</li><li><i></i>NCAA</li><li><i></i>SOCCER</li><li><i></i>TENNIS</li><li><i></i>CS2</li><li><i></i>VALORANT</li><li><i></i>DOTA 2</li><li><i></i>COD</li></ul>
     <div class="proof reveal">
-      <div class="p"><div class="n">${sportCount}</div><div class="l">leagues, one shape</div></div>
+      <div class="p"><div class="n">${sportCount}</div><div class="l">sports, one shape</div></div>
       <div class="p"><div class="n">MCP</div><div class="l">+ OpenAPI 3.1</div></div>
       <div class="p"><div class="n">$0</div><div class="l">free tier, no card</div></div>
-      <div class="p"><div class="n">Live</div><div class="l">pre-game + in-game</div></div>
+      <div class="p"><div class="n">~5 min</div><div class="l">refresh cadence</div></div>
       <div class="p"><div class="n">REST</div><div class="l">clean JSON, American odds</div></div>
     </div>
   </div>
@@ -491,21 +493,21 @@ curl -H <span class="s">"Authorization: Bearer $KEY"</span> \\
     <h2 class="reveal">A small API that does the job</h2>
     <p class="lead reveal">Clean JSON, American odds, and the same fields across every sport.</p>
     <div class="schema-demo reveal">
-      <div class="schema-copy"><h3>Consistent fields across sports</h3><p>The API returns the same core structure across books and leagues.</p><div class="schema-points"><span>Normalized players, stats, lines, and odds</span><span>Pregame and live markets in the same response</span><span>Source and freshness included for every record</span></div></div>
+      <div class="schema-copy"><h3>Consistent fields across sports</h3><p>The API returns the same core structure across every sport and league.</p><div class="schema-points"><span>Normalized players, stats, lines, and odds</span><span>Pre-game markets, one shape across every sport</span><span>Source and snapshot freshness on every record</span></div></div>
       <div class="response"><div class="rbar"><span>example response</span><span class="ok">200 OK · application/json</span></div><pre>{
   <span class="rk">"sport"</span>: <span class="rv">"${hl}"</span>,
   <span class="rk">"player"</span>: <span class="rv">"Sample Player"</span>,
   <span class="rk">"stat"</span>: <span class="rv">"points"</span>,
   <span class="rk">"line"</span>: <span class="rn">24.5</span>,
   <span class="rk">"overOdds"</span>: <span class="rn">-115</span>,
-  <span class="rk">"live"</span>: <span class="rn">true</span>,
-  <span class="rk">"source"</span>: <span class="rv">"book"</span>
+  <span class="rk">"gameState"</span>: <span class="rv">"pre"</span>,
+  <span class="rk">"source"</span>: <span class="rv">"underdog"</span>
 }</pre></div>
     </div>
     <div class="grid reveal">
       <div class="card"><code>GET /api/v1/games</code><h4>Today's games</h4><p>Every matchup with props posted, live games first.</p></div>
       <div class="card"><code>GET /games/{id}/props</code><h4>Props for a game</h4><p>All player lines for one matchup, filterable by stat.</p></div>
-      <div class="card"><code>GET /api/v1/props</code><h4>Market-wide scan</h4><p>Every prop across the slate, flattened into one flow feed.</p></div>
+      <div class="card"><code>GET /api/v1/props</code><h4>Market-wide scan</h4><p>The whole slate for a sport, flattened into one flow feed.</p></div>
       <div class="card"><code>GET /api/v1/me</code><h4>Key &amp; usage</h4><p>Your tier, limits, and live request counts.</p></div>
     </div>
   </div>
@@ -531,7 +533,7 @@ curl -H <span class="s">"Authorization: Bearer $KEY"</span> \\
 <section id="pricing">
   <div class="wrap">
     <h2 class="reveal">Simple monthly pricing</h2>
-    <p class="lead reveal">Start free. Upgrade when you need realtime data, live lines, or more sports.${
+    <p class="lead reveal">Start free. Upgrade when you need more sports, more volume, and bigger scans.${
 			cryptoEnabled() ? ` <strong style="color:var(--flash2)">Pay with USDC and save ${discountPct()}%.</strong>` : ''
 		}</p>
     <div class="tiers reveal">
@@ -546,18 +548,18 @@ curl -H <span class="s">"Authorization: Bearer $KEY"</span> \\
 <section class="band">
   <div class="wrap">
     <h2 class="reveal">Ways to use it</h2>
-    <p class="lead reveal">REST for your application, MCP for supported clients, and custom terms for redistribution.</p>
+    <p class="lead reveal">REST for your application, MCP for supported clients, and custom terms for higher volume.</p>
     <div class="involve reveal">
-      <div class="inv"><div class="ic">REST API</div><h4>Apps and dashboards</h4><p>Use a free key while you build, then upgrade when you need realtime data.</p><a href="/billing/free">Get a free key →</a></div>
+      <div class="inv"><div class="ic">REST API</div><h4>Apps and dashboards</h4><p>Use a free key while you build, then upgrade when you need more volume.</p><a href="/billing/free">Get a free key →</a></div>
       <div class="inv"><div class="ic">MCP</div><h4>Claude and Cursor</h4><p>Add the MCP server to a supported client and query props directly.</p><a href="/connect">Setup instructions →</a></div>
-      <div class="inv"><div class="ic">PRO</div><h4>All sports and live lines</h4><p>Realtime coverage, in-game props, and higher request limits.</p><a href="/billing/checkout?tier=pro">View Pro →</a></div>
-      <div class="inv"><div class="ic">CUSTOM</div><h4>Redistribution</h4><p>Contact us for custom volume, SLAs, and redistribution terms.</p><a href="mailto:malone.jaylon@gmail.com?subject=Flash%20Props%20API%20Partnership">Email us →</a></div>
+      <div class="inv"><div class="ic">PRO</div><h4>The full board</h4><p>Every sport we cover, higher request limits, and bigger market scans.</p><a href="/billing/checkout?tier=pro">View Pro →</a></div>
+      <div class="inv"><div class="ic">CUSTOM</div><h4>Higher volume</h4><p>Contact us for custom volume, rate limits, and support terms.</p><a href="mailto:malone.jaylon@gmail.com?subject=Flash%20Props%20API%20Partnership">Email us →</a></div>
     </div>
   </div>
 </section>
 
 <section>
-  <div class="wrap"><div class="final-cta reveal"><h2>Try the API before paying</h2><p class="lead">The free tier includes 250 requests per day and does not require a card.</p><div class="cta"><a class="btn" href="/billing/free">Get a free key</a><a class="btn ghost" href="/docs">Read the docs →</a></div></div><p class="disclaimer">League and sport names identify data coverage only. Flash Props API is independent and is not sponsored by, endorsed by, or affiliated with the NBA, MLB, NFL, NHL, NCAA, their teams, or any governing body.</p></div>
+  <div class="wrap"><div class="final-cta reveal"><h2>Try the API before paying</h2><p class="lead">The free tier includes 250 requests per day and does not require a card.</p><div class="cta"><a class="btn" href="/billing/free">Get a free key</a><a class="btn ghost" href="/docs">Read the docs →</a></div></div><p class="disclaimer">League, team, and sport names identify data coverage only. Flash Props API is an independent product and is not sponsored by, endorsed by, or affiliated with the NBA, MLB, NFL, NHL, NCAA, their teams, any esports league or organizer, or any sportsbook or DFS operator. Data is provided for informational purposes only. Flash Props does not accept wagers and is not a sportsbook or gambling operator. 21+. If you or someone you know has a gambling problem, call 1-800-GAMBLER.</p></div>
 </section>
 
 <footer>

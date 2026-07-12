@@ -1,6 +1,9 @@
-// Unified props facade over the free books. This is the data engine the API
-// endpoints call. Underdog covers NBA pre-game; Bovada covers all supported
-// sports including live in-game lines.
+// Unified props facade over the upstream props board. This is the data engine
+// the API endpoints call. The primary source (Underdog) carries PRE-GAME props
+// across every supported sport (traditional leagues + tennis + esports). A
+// secondary source (Bovada) can add live in-game lines where it's reachable —
+// but it currently returns empty from the VPS, so responses are pre-game in
+// practice. Nothing here fabricates data: no source = empty, never faked.
 
 import { normName } from './types.js';
 import type { GameRef, PropsResult, ScanRow } from './types.js';
