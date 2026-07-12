@@ -25,7 +25,7 @@ async function probe(sport: string) {
 	}
 }
 
-for (const s of ['nba', 'mlb', 'soccer']) {
+for (const s of ['mlb', 'nfl', 'soccer', 'tennis', 'cs2', 'valorant', 'dota2', 'esports']) {
 	await probe(s);
 }
 console.log('\ndone');

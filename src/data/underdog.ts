@@ -21,10 +21,12 @@ const SNAPSHOT_TTL_MS = 5 * 60 * 1000; // 5 min — props update frequently
 const PHOTO_TTL_MS = 10 * 60 * 1000;
 
 // Underdog sport_id (uppercased) → our catalog sport id. Only leagues we sell
-// are mapped; anything else (tennis, PGA, MMA, esports, NPB, CFL) is skipped.
+// are mapped; anything still unmapped (PGA, MMA, RACING, NPB, CFL) is skipped.
 // Underdog labels Summer League + WNBA under one "BASKETBALL" sport_id — we
 // surface that as its OWN `basketball` id (NOT `nba`, to avoid mislabeling), so
-// summer hoops props are live year-round instead of dropped.
+// summer hoops props are live year-round instead of dropped. The traditional
+// leagues share the storefront with tennis + the major esports circuits, which
+// Underdog posts under `TENNIS`/`CS`/`VAL`/`DOTA`/`ESPORTS` (verified live).
 const UD_SPORT: Record<string, string> = {
 	NBA: 'nba',
 	BASKETBALL: 'basketball',
@@ -37,7 +39,17 @@ const UD_SPORT: Record<string, string> = {
 	NCAAB: 'ncaab',
 	CBB: 'ncaab',
 	FIFA: 'soccer',
-	SOCCER: 'soccer'
+	SOCCER: 'soccer',
+	TENNIS: 'tennis',
+	CS: 'cs2',
+	CS2: 'cs2',
+	CSGO: 'cs2',
+	VAL: 'valorant',
+	VALORANT: 'valorant',
+	DOTA: 'dota2',
+	DOTA2: 'dota2',
+	LOL: 'esports',
+	ESPORTS: 'esports'
 };
 
 // Canonical stat aliases so common lines match our documented vocabulary

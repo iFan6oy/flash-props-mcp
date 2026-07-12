@@ -1,7 +1,7 @@
-// Subscription tiers. Numbers are starting points — tune freely. The free
-// tier serves delayed data (staleness set by FREE_TIER_DELAY_MS) and is capped
-// to the current in-season sport; paid tiers get realtime data and more
-// sports/volume.
+// Subscription tiers. Tiers differ by REQUEST VOLUME, SCAN SIZE, and SPORT
+// BREADTH — not by data freshness (every tier gets the same live snapshot).
+// The free tier is capped to the current in-season headline sport; paid tiers
+// unlock all active sports (traditional leagues + tennis + esports).
 
 import { headlineSport } from './sports.js';
 
@@ -17,7 +17,7 @@ export interface Tier {
 	priceMonthly: number | null; // USD; null = custom / contact sales
 	requestsPerDay: number;
 	requestsPerMinute: number;
-	realtime: boolean; // false → responses delayed by FREE_TIER_DELAY_MS
+	realtime: boolean; // reserved; every tier currently serves the same live snapshot
 	sports: SportsAccess; // allowed sports (or 'in-season' for the free tier)
 	scanLimit: number; // max rows returned by the /props scan
 	blurb: string;
@@ -31,11 +31,11 @@ export const TIERS: Record<TierId, Tier> = {
 		priceMonthly: 0,
 		requestsPerDay: 250,
 		requestsPerMinute: 15,
-		realtime: false,
+		realtime: true,
 		sports: 'in-season',
 		scanLimit: 25,
-		blurb: 'Kick the tires. Delayed props for whatever league is in season.',
-		features: ['Current in-season sport', 'Delayed data (~5 min)', '250 requests/day', 'Community support']
+		blurb: 'Kick the tires on whatever league is in season today.',
+		features: ['Current in-season sport', '250 requests/day', 'Small scans (25 rows)', 'REST + MCP', 'Community support']
 	},
 	starter: {
 		id: 'starter',
@@ -44,10 +44,16 @@ export const TIERS: Record<TierId, Tier> = {
 		requestsPerDay: 10_000,
 		requestsPerMinute: 120,
 		realtime: true,
-		sports: ['nba', 'mlb'],
+		sports: 'all',
 		scanLimit: 100,
-		blurb: 'For personal projects and small apps. Realtime NBA + MLB.',
-		features: ['NBA + MLB props', 'Realtime data', '10k requests/day', 'Market-wide scan', 'Email support']
+		blurb: 'For personal projects and small apps. Every active sport we cover.',
+		features: [
+			'All active sports (incl. tennis + esports)',
+			'10,000 requests/day',
+			'Market-wide scan (100 rows)',
+			'REST + MCP',
+			'Email support'
+		]
 	},
 	pro: {
 		id: 'pro',
@@ -58,12 +64,12 @@ export const TIERS: Record<TierId, Tier> = {
 		realtime: true,
 		sports: 'all',
 		scanLimit: 500,
-		blurb: 'For products that need every sport and live lines.',
+		blurb: 'For products that need real volume and the full board.',
 		features: [
-			'All sports (NBA/MLB/NFL/NHL/NCAA/soccer)',
-			'Realtime + live in-game props',
-			'100k requests/day',
+			'Everything in Starter',
+			'100,000 requests/day',
 			'Full market scan (500 rows)',
+			'Higher burst limits',
 			'Priority support'
 		]
 	},
@@ -76,8 +82,8 @@ export const TIERS: Record<TierId, Tier> = {
 		realtime: true,
 		sports: 'all',
 		scanLimit: 5_000,
-		blurb: 'Redistribution, custom volume, SLAs.',
-		features: ['Everything in Pro', 'Custom volume + rate limits', 'Redistribution license', 'SLA + dedicated support']
+		blurb: 'Custom volume, higher rate limits, and support terms.',
+		features: ['Everything in Pro', 'Custom volume + rate limits', 'Dedicated support', 'SLA discussion']
 	}
 };
 

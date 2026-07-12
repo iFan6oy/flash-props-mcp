@@ -54,17 +54,20 @@ function forbidSport(sport: string, tier: Tier) {
 	};
 }
 
-// Resolve the sport for a request against the caller's tier. If they didn't
-// explicitly pass ?sport= and the schema's default (nba) isn't on their tier,
-// fall back to today's in-season headline sport instead of 403ing — so a bare
-// call always returns a live slate. An EXPLICIT out-of-tier sport still 403s.
+// Resolve the sport for a request against the caller's tier.
+//   - EXPLICIT ?sport=x  → honor it exactly; 403 if it's outside the tier.
+//   - BARE call (no ?sport=) → land on today's in-season headline sport so a
+//     first request always hits a live slate (never "NBA in July" empties).
+//     Fall back to the schema default, then to any sport the tier allows.
+// The schema default (nba) is only a last resort, never the silent default —
+// that was the seasonal empty-response trap.
 function pickSport(tier: Tier, defaulted: string, explicit: string | undefined): string | null {
+	if (explicit) return sportAllowed(tier, explicit) ? explicit : null;
+	const headline = headlineSport();
+	if (sportAllowed(tier, headline)) return headline;
 	if (sportAllowed(tier, defaulted)) return defaulted;
-	if (!explicit) {
-		const fallback = headlineSport();
-		if (sportAllowed(tier, fallback)) return fallback;
-	}
-	return null;
+	const eff = effectiveSports(tier);
+	return eff === 'all' ? headline : (eff[0] ?? null);
 }
 
 // GET /sports ---------------------------------------------------------------
