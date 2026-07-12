@@ -5,7 +5,8 @@ import { TIERS, type TierId } from '../config/tiers.js';
 import { headlineSport } from '../config/sports.js';
 import { createApiKey } from '../auth/keys.js';
 import { getStripe } from './stripe.js';
-import { provisionForCustomer, revokeForCustomer, setTierForCustomer } from './provision.js';
+import { provisionForCustomer, revokeForCustomer, setTierForCustomer, customerIdForKey } from './provision.js';
+import { stashReveal, takeReveal } from './reveal.js';
 import {
 	cryptoEnabled,
 	enabledChains,
@@ -141,11 +142,16 @@ billing.get('/success', async (c) => {
 	}
 	const customerId = String(session.customer);
 	const tier = ((session.metadata?.tier as TierId) || 'starter') as TierId;
-	const result = provisionForCustomer(customerId, tier);
+	const email = session.customer_details?.email ?? null;
+	const result = provisionForCustomer(customerId, tier, email);
 	if (result.created) {
 		notifySale({ channel: 'stripe', tier, amount: TIERS[tier].priceMonthly ?? 0, currency: 'USD', period: '1 mo' });
 	}
-	return c.html(keyPage({ tier, ...result }));
+	// Reveal the plaintext once. If the webhook already provisioned (created:false)
+	// it will have stashed the fresh key for a one-time reveal here — so the buyer
+	// still gets their key on this page even when the webhook won the race.
+	const shownKey = result.key ?? takeReveal(customerId) ?? undefined;
+	return c.html(keyPage({ tier, key: shownKey, prefix: result.prefix, created: !!shownKey }));
 });
 
 // --- Stripe webhook: subscription lifecycle --------------------------------
@@ -164,6 +170,25 @@ billing.post('/webhook', async (c) => {
 	}
 
 	switch (event.type) {
+		case 'checkout.session.completed': {
+			// The trust-critical path: provision the key here, from the webhook, so a
+			// paid buyer gets their product even if they close the Stripe tab before
+			// /billing/success loads. Idempotent (provisionForCustomer no-ops if the
+			// key already exists), and Stripe delivers this event at-least-once.
+			const session = event.data.object;
+			const paid = session.status === 'complete' || session.payment_status === 'paid';
+			const customerId = session.customer ? String(session.customer) : '';
+			if (paid && customerId) {
+				const tier = ((session.metadata?.tier as TierId) || 'starter') as TierId;
+				const email = session.customer_details?.email ?? null;
+				const result = provisionForCustomer(customerId, tier, email);
+				if (result.created && result.key) {
+					stashReveal(customerId, result.key); // let /success reveal it once
+					notifySale({ channel: 'stripe', tier, amount: TIERS[tier].priceMonthly ?? 0, currency: 'USD', period: '1 mo' });
+				}
+			}
+			break;
+		}
 		case 'customer.subscription.deleted': {
 			const sub = event.data.object;
 			revokeForCustomer(String(sub.customer));
@@ -179,6 +204,55 @@ billing.post('/webhook', async (c) => {
 			break;
 	}
 	return c.json({ received: true });
+});
+
+// --- Stripe billing portal (self-serve manage / cancel) --------------------
+billing.get('/portal', (c) =>
+	c.html(
+		page(
+			'Manage billing',
+			`<h1>Manage your subscription</h1>
+     <p class="mut">Paste your Flash Props API key to open the Stripe billing portal — update your card, download invoices, or cancel.</p>
+     <input id="k" placeholder="flash_live_…" autocomplete="off" spellcheck="false"
+       style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid #232838;background:#0a0c11;color:#ff9d47;font:14px ui-monospace,Menlo,Consolas,monospace;margin:14px 0"/>
+     <button onclick="go()" style="width:100%;padding:12px 16px">Open billing portal →</button>
+     <p id="err" class="warn" style="display:none;margin-top:12px"></p>
+     <script>
+       async function go(){
+         var key=(document.getElementById('k').value||'').trim();
+         var e=document.getElementById('err'); e.style.display='none';
+         if(!key){ e.textContent='Paste your API key first.'; e.style.display='block'; return; }
+         try{
+           var r=await fetch('/billing/portal',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key:key})});
+           var d=await r.json();
+           if(d.url){ location.href=d.url; return; }
+           e.textContent=d.message||'Could not open the billing portal.'; e.style.display='block';
+         }catch(_){ e.textContent='Network error. Please try again.'; e.style.display='block'; }
+       }
+     </script>`
+		)
+	)
+);
+
+billing.post('/portal', async (c) => {
+	const stripe = getStripe();
+	if (!stripe) return c.json({ error: 'not_configured', message: 'Billing is not configured.' }, 503);
+	const body = (await c.req.json().catch(() => ({}))) as { key?: string };
+	const rawKey = (body.key || '').trim();
+	if (!rawKey) return c.json({ error: 'missing_key', message: 'Paste your Flash Props API key.' }, 400);
+	const customerId = customerIdForKey(rawKey);
+	if (!customerId) {
+		return c.json(
+			{ error: 'no_subscription', message: 'That key is not linked to a card subscription. Free and crypto keys have no billing portal.' },
+			404
+		);
+	}
+	try {
+		const portal = await stripe.billingPortal.sessions.create({ customer: customerId, return_url: `${BASE}/` });
+		return c.json({ url: portal.url });
+	} catch {
+		return c.json({ error: 'portal_failed', message: 'Could not open the billing portal. Please contact support.' }, 502);
+	}
 });
 
 // --- Crypto checkout (Solana Pay / USDC) -----------------------------------

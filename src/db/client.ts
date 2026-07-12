@@ -26,6 +26,8 @@ export function ensureSchema(): void {
 			label TEXT NOT NULL DEFAULT 'default',
 			active INTEGER NOT NULL DEFAULT 1,
 			customer_id TEXT,
+			email TEXT,
+			source TEXT,
 			created_at INTEGER NOT NULL,
 			last_used_at INTEGER
 		);
@@ -55,6 +57,8 @@ export function ensureSchema(): void {
 	// Additive migrations for existing databases (idempotent — ignore "duplicate column").
 	for (const stmt of [
 		'ALTER TABLE api_keys ADD COLUMN expires_at INTEGER',
+		'ALTER TABLE api_keys ADD COLUMN email TEXT',
+		'ALTER TABLE api_keys ADD COLUMN source TEXT',
 		"ALTER TABLE crypto_orders ADD COLUMN chain TEXT NOT NULL DEFAULT 'solana'",
 		'ALTER TABLE crypto_orders ADD COLUMN from_block INTEGER'
 	]) {

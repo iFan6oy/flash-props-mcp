@@ -12,6 +12,8 @@ export const apiKeys = sqliteTable(
 		label: text('label').notNull().default('default'),
 		active: integer('active', { mode: 'boolean' }).notNull().default(true),
 		customerId: text('customer_id'), // Stripe customer, when billed
+		email: text('email'), // customer email (Stripe checkout / free-key form) for delivery + recovery
+		source: text('source'), // attribution: ?src= channel, or 'stripe' / 'crypto'
 		expiresAt: integer('expires_at'), // prepaid crypto keys expire; null = no expiry
 		createdAt: integer('created_at').notNull(),
 		lastUsedAt: integer('last_used_at')

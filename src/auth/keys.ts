@@ -27,7 +27,15 @@ export function hashKey(key: string): string {
 }
 
 export function createApiKey(
-	opts: { tier?: TierId; label?: string; mode?: 'live' | 'test'; customerId?: string; expiresAt?: number | null } = {}
+	opts: {
+		tier?: TierId;
+		label?: string;
+		mode?: 'live' | 'test';
+		customerId?: string;
+		email?: string | null;
+		source?: string | null;
+		expiresAt?: number | null;
+	} = {}
 ): { record: KeyRecord; key: string } {
 	const mode = opts.mode ?? (env.NODE_ENV === 'production' ? 'live' : 'test');
 	const { key, prefix } = generateKey(mode);
@@ -44,6 +52,8 @@ export function createApiKey(
 			label,
 			active: true,
 			customerId: opts.customerId ?? null,
+			email: opts.email ?? null,
+			source: opts.source ?? null,
 			expiresAt,
 			createdAt: Date.now()
 		})
