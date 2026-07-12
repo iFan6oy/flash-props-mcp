@@ -268,12 +268,12 @@ function landingHtml(): string {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Flash Props API — the real-deal sports props API</title>
-<meta name="description" content="Live sports betting player-prop lines, unified into one fast API and a real MCP server. NBA, MLB, NFL, NHL, NCAA, soccer. Built for apps, bots, and AI agents." />
+<title>Flash Props API — Sports Props Data for Developers</title>
+<meta name="description" content="Live sports betting player-prop lines, unified into one fast API and MCP server. NBA, MLB, NFL, NHL, NCAA and soccer." />
 <meta name="theme-color" content="#07080c" />
 <meta property="og:type" content="website" /><meta property="og:url" content="${BASE}/" />
 <meta property="og:title" content="Flash Props API — every player prop, one API" />
-<meta property="og:description" content="Realtime and live player props across major sports, normalized for apps, bots, and AI agents." />
+<meta property="og:description" content="Realtime and live player props across major sports, normalized for developers." />
 <meta name="twitter:card" content="summary" /><link rel="canonical" href="${BASE}/" /><link rel="icon" type="image/png" href="${BRAND_LOGO}" />
 <style>
   :root{
@@ -347,13 +347,6 @@ function landingHtml(): string {
     font-size:12px;letter-spacing:2px;text-transform:uppercase;opacity:.7;animation:bob 2.2s ease-in-out infinite}
   @keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,7px)}}
 
-  .depth-card{position:absolute;z-index:-1;width:190px;padding:14px 16px;border:1px solid rgba(255,255,255,.11);border-radius:15px;background:rgba(10,12,18,.46);backdrop-filter:blur(13px);box-shadow:0 24px 80px rgba(0,0,0,.42);text-align:left;transform-style:preserve-3d;animation:drift 6s ease-in-out infinite}
-  .depth-card.left{left:2%;top:31%;transform:perspective(700px) rotateY(13deg) rotateZ(-3deg)}
-  .depth-card.right{right:2%;top:48%;transform:perspective(700px) rotateY(-13deg) rotateZ(3deg);animation-delay:-3s}
-  .depth-card .dtop{display:flex;justify-content:space-between;color:#7f899b;font:10px var(--mono);letter-spacing:1px;text-transform:uppercase}.depth-card .live{color:var(--green)}
-  .depth-card strong{display:block;margin:9px 0 2px;font-size:14px}.depth-card .market{color:var(--flash2);font:700 13px var(--mono)}
-  @keyframes drift{0%,100%{translate:0 0}50%{translate:0 -12px}}
-
   .code{background:rgba(8,10,15,.72);border:1px solid var(--line);border-radius:var(--radius);
     margin:34px auto 0;max-width:720px;text-align:left;overflow:hidden;backdrop-filter:blur(10px);
     box-shadow:0 30px 80px -40px rgba(0,0,0,.9)}
@@ -379,7 +372,7 @@ function landingHtml(): string {
     -webkit-background-clip:text;background-clip:text;color:transparent}
   .proof .l{color:var(--muted);font-size:13px;margin-top:4px}
 
-  .coverage{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;max-width:1000px;margin:0 auto 22px;padding:0;list-style:none}.coverage li{display:inline-flex;align-items:center;gap:8px;background:rgba(12,14,20,.72);border:1px solid var(--line);border-radius:999px;padding:8px 13px;color:#cbd2df;font:700 11px var(--mono);letter-spacing:.7px;backdrop-filter:blur(8px)}.coverage i{width:7px;height:7px;border:1px solid var(--flash2);border-radius:50%;box-shadow:inset 0 0 0 2px rgba(245,132,38,.18)}
+  .coverage{display:flex;justify-content:center;gap:0;flex-wrap:wrap;max-width:900px;margin:0 auto 26px;padding:0;list-style:none;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.coverage li{display:inline-flex;align-items:center;gap:8px;padding:12px 18px;color:#aeb7c7;font:700 11px var(--mono);letter-spacing:.7px}.coverage i{width:5px;height:5px;background:var(--flash2);border-radius:50%;opacity:.8}
 
   .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));max-width:1000px;margin:0 auto}
   .card{background:rgba(17,20,28,.6);border:1px solid var(--line);border-radius:var(--radius);padding:24px;
@@ -390,7 +383,7 @@ function landingHtml(): string {
   .card h4{margin:0 0 6px;font-size:16px}
   .card p{margin:0;color:var(--muted);font-size:14px}
 
-  .schema-demo{display:grid;grid-template-columns:.9fr 1.1fr;gap:24px;align-items:center;max-width:1000px;margin:0 auto 26px;background:linear-gradient(135deg,rgba(22,26,36,.7),rgba(9,11,16,.72));border:1px solid var(--line);border-radius:22px;padding:28px;backdrop-filter:blur(8px)}
+  .schema-demo{display:grid;grid-template-columns:.9fr 1.1fr;gap:24px;align-items:center;max-width:1000px;margin:0 auto 26px;background:rgba(10,12,17,.82);border:1px solid var(--line);border-radius:16px;padding:28px}
   .schema-copy h3{font-size:24px;letter-spacing:-.5px;margin:0 0 8px}.schema-copy p{color:var(--muted);margin:0 0 16px}.schema-points{display:grid;gap:9px;color:#cdd4e4;font-size:13px}.schema-points span:before{content:'✓';color:var(--green);font-weight:800;margin-right:9px}
   .response{background:#080a0f;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 28px 70px -38px rgba(0,0,0,.95)}.response .rbar{display:flex;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--line);color:var(--muted);font:11px var(--mono)}.response .ok{color:var(--green)}.response pre{margin:0;padding:16px;overflow:auto;font:12px/1.65 var(--mono);color:#cfd7e7}.response .rk{color:var(--flash2)}.response .rv{color:#83e6ab}.response .rn{color:#7dddf0}
 
@@ -430,18 +423,18 @@ function landingHtml(): string {
   .inv{background:rgba(17,20,28,.6);border:1px solid var(--line);border-radius:var(--radius);padding:24px;
     transition:transform .18s ease,border-color .18s ease}
   .inv:hover{transform:translateY(-4px);border-color:rgba(245,132,38,.45)}
-  .inv .ic{font-size:22px;margin-bottom:10px}
+  .inv .ic{color:var(--muted);font:700 11px var(--mono);letter-spacing:1.6px;margin-bottom:12px}
   .inv h4{margin:0 0 6px;font-size:16px}
   .inv p{margin:0 0 14px;color:var(--muted);font-size:14px}
   .inv a{color:var(--flash2);font-weight:600;font-size:14px}
 
-  .final-cta{max-width:1000px;margin:0 auto;text-align:center;padding:54px 24px;border:1px solid rgba(245,132,38,.3);border-radius:24px;background:radial-gradient(600px 220px at 50% 0,rgba(245,132,38,.15),transparent 70%),rgba(12,14,20,.65)}.final-cta h2{margin-bottom:12px}.final-cta .lead{margin-bottom:24px}
+  .final-cta{max-width:1000px;margin:0 auto;text-align:center;padding:54px 24px;border:1px solid var(--line);border-radius:16px;background:rgba(12,14,20,.78)}.final-cta h2{margin-bottom:12px}.final-cta .lead{margin-bottom:24px}
   .disclaimer{max-width:900px;margin:28px auto 0;color:#687286;text-align:center;font-size:11px;line-height:1.6}
 
   footer{border-top:1px solid var(--line);margin-top:30px;padding:30px 24px 50px;color:var(--muted);
     display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:14px;max-width:1140px;
     margin-left:auto;margin-right:auto;position:relative;z-index:2}
-  @media(max-width:900px){.depth-card{display:none}.schema-demo{grid-template-columns:1fr}}
+  @media(max-width:900px){.schema-demo{grid-template-columns:1fr}}
   @media(max-width:660px){nav .links a.hideM{display:none}nav{padding:14px 18px}.logo-copy small{display:none}.schema-demo{padding:20px}.response pre{font-size:10.5px}}
   @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.scrollcue,.pill .g{animation:none}}
 </style>
@@ -463,15 +456,13 @@ function landingHtml(): string {
 </nav>
 
 <header class="hero wrap">
-  <div class="depth-card left" aria-hidden="true"><div class="dtop"><span>Normalized line</span><span class="live">● live</span></div><strong>Player points</strong><div class="market">O 24.5&nbsp;&nbsp; −115</div></div>
-  <div class="depth-card right" aria-hidden="true"><div class="dtop"><span>Market pulse</span><span class="live">● live</span></div><strong>Pitcher strikeouts</strong><div class="market">U 6.5&nbsp;&nbsp; +105</div></div>
   <div class="kicker" id="kicker">Jumper. <b>Catch.</b> Base hit.</div>
   <div class="pill"><span class="g"></span> Live now · basketball · MLB · NFL · NHL · NCAA · soccer</div>
   <h1 class="big">Every player prop.<br><span class="accent">One API. Zero scraping.</span></h1>
-  <p class="sub">Live player props across NBA, MLB, NFL, NHL, NCAA and soccer, unified from real books into clean JSON and a real MCP server. Free tier, no card. Ship your feature instead of babysitting scrapers.</p>
+  <p class="sub">Player props from multiple books, normalized into one API. REST and MCP access for NBA, MLB, NFL, NHL, NCAA and soccer. Test it free before paying.</p>
   <div class="cta">
     <a class="btn" href="/billing/free">Get a free key</a>
-    <a class="btn ghost" href="/connect">Connect to Claude →</a>
+    <a class="btn ghost" href="/docs">View API docs →</a>
   </div>
   <div class="code">
     <div class="bar"><i></i><i></i><i></i><span>bash</span></div>
@@ -497,10 +488,10 @@ curl -H <span class="s">"Authorization: Bearer $KEY"</span> \\
 
 <section>
   <div class="wrap">
-    <h2 class="reveal">Everything you need to build</h2>
-    <p class="lead reveal">A small, honest surface. Clean JSON, American odds, the same shape across every sport.</p>
+    <h2 class="reveal">A small API that does the job</h2>
+    <p class="lead reveal">Clean JSON, American odds, and the same fields across every sport.</p>
     <div class="schema-demo reveal">
-      <div class="schema-copy"><h3>One shape across every sport.</h3><p>Stop writing a different parser for every book and league. Ask for a board, get predictable fields back.</p><div class="schema-points"><span>Normalized players, stats, lines, and odds</span><span>Pregame and live markets in the same response</span><span>Source and freshness included for every record</span></div></div>
+      <div class="schema-copy"><h3>Consistent fields across sports</h3><p>The API returns the same core structure across books and leagues.</p><div class="schema-points"><span>Normalized players, stats, lines, and odds</span><span>Pregame and live markets in the same response</span><span>Source and freshness included for every record</span></div></div>
       <div class="response"><div class="rbar"><span>example response</span><span class="ok">200 OK · application/json</span></div><pre>{
   <span class="rk">"sport"</span>: <span class="rv">"${hl}"</span>,
   <span class="rk">"player"</span>: <span class="rv">"Sample Player"</span>,
@@ -523,8 +514,8 @@ curl -H <span class="s">"Authorization: Bearer $KEY"</span> \\
 <section class="band">
   <div class="wrap">
     <div class="agent reveal">
-      <h2>Built for AI agents, not just apps</h2>
-      <p class="lead">A real MCP server, not just docs. Point Claude, Cursor, or any MCP client at it and ask about the board in plain English. No glue code.</p>
+      <h2>Use it through MCP</h2>
+      <p class="lead">Connect Claude, Cursor, or another MCP client directly to the API. The same data is also available through REST.</p>
       <div class="askbox"><span class="u">you ›</span> what are the best strikeout props tonight?<br><span style="color:#6b7688">flash-props · scan_props → 5 tools, live data</span></div>
       <div class="chips">
         <div class="chip"><b>MCP server</b> · <a href="/connect">connect →</a></div>
@@ -539,8 +530,8 @@ curl -H <span class="s">"Authorization: Bearer $KEY"</span> \\
 
 <section id="pricing">
   <div class="wrap">
-    <h2 class="reveal">Free to start. Cheap to scale.</h2>
-    <p class="lead reveal">Free data sources under the hood, so the free tier is genuinely free. Upgrade for realtime, live in-game lines, and every sport.${
+    <h2 class="reveal">Simple monthly pricing</h2>
+    <p class="lead reveal">Start free. Upgrade when you need realtime data, live lines, or more sports.${
 			cryptoEnabled() ? ` <strong style="color:var(--flash2)">Pay with USDC and save ${discountPct()}%.</strong>` : ''
 		}</p>
     <div class="tiers reveal">
@@ -554,19 +545,19 @@ curl -H <span class="s">"Authorization: Bearer $KEY"</span> \\
 
 <section class="band">
   <div class="wrap">
-    <h2 class="reveal">Get involved</h2>
-    <p class="lead reveal">However you build, there's a lane in.</p>
+    <h2 class="reveal">Ways to use it</h2>
+    <p class="lead reveal">REST for your application, MCP for supported clients, and custom terms for redistribution.</p>
     <div class="involve reveal">
-      <div class="inv"><div class="ic">⚡</div><h4>Ship an app or bot</h4><p>Grab a free key and hit the REST API. Upgrade when you outgrow it.</p><a href="/billing/free">Get a free key →</a></div>
-      <div class="inv"><div class="ic">🤖</div><h4>Give your agent eyes</h4><p>Connect the MCP server to Claude, Cursor, or your own agent in one step.</p><a href="/connect">Connect →</a></div>
-      <div class="inv"><div class="ic">📈</div><h4>Go pro</h4><p>Realtime, live in-game props, and every sport for serious volume.</p><a href="/billing/checkout?tier=pro">See Pro →</a></div>
-      <div class="inv"><div class="ic">🤝</div><h4>Partner or redistribute</h4><p>Custom volume, SLAs, a redistribution license, or something new. Let's talk.</p><a href="mailto:malone.jaylon@gmail.com?subject=Flash%20Props%20API%20Partnership">Email us →</a></div>
+      <div class="inv"><div class="ic">REST API</div><h4>Apps and dashboards</h4><p>Use a free key while you build, then upgrade when you need realtime data.</p><a href="/billing/free">Get a free key →</a></div>
+      <div class="inv"><div class="ic">MCP</div><h4>Claude and Cursor</h4><p>Add the MCP server to a supported client and query props directly.</p><a href="/connect">Setup instructions →</a></div>
+      <div class="inv"><div class="ic">PRO</div><h4>All sports and live lines</h4><p>Realtime coverage, in-game props, and higher request limits.</p><a href="/billing/checkout?tier=pro">View Pro →</a></div>
+      <div class="inv"><div class="ic">CUSTOM</div><h4>Redistribution</h4><p>Contact us for custom volume, SLAs, and redistribution terms.</p><a href="mailto:malone.jaylon@gmail.com?subject=Flash%20Props%20API%20Partnership">Email us →</a></div>
     </div>
   </div>
 </section>
 
 <section>
-  <div class="wrap"><div class="final-cta reveal"><h2>Make your first call tonight.</h2><p class="lead">A free key, a live endpoint, and no card. The fastest way to judge the product is to use it.</p><div class="cta"><a class="btn" href="/billing/free">Get a free key</a><a class="btn ghost" href="/docs">Read the docs →</a></div></div><p class="disclaimer">League and sport names identify data coverage only. Flash Props API is independent and is not sponsored by, endorsed by, or affiliated with the NBA, MLB, NFL, NHL, NCAA, their teams, or any governing body.</p></div>
+  <div class="wrap"><div class="final-cta reveal"><h2>Try the API before paying</h2><p class="lead">The free tier includes 250 requests per day and does not require a card.</p><div class="cta"><a class="btn" href="/billing/free">Get a free key</a><a class="btn ghost" href="/docs">Read the docs →</a></div></div><p class="disclaimer">League and sport names identify data coverage only. Flash Props API is independent and is not sponsored by, endorsed by, or affiliated with the NBA, MLB, NFL, NHL, NCAA, their teams, or any governing body.</p></div>
 </section>
 
 <footer>
