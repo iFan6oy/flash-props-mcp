@@ -16,11 +16,9 @@ const EnvSchema = z.object({
 	API_KEY_SECRET: z.string().min(1).default('dev-only-change-me-in-prod'),
 	// Artificial staleness applied to free-tier responses (ms). 0 = realtime.
 	FREE_TIER_DELAY_MS: z.coerce.number().int().nonnegative().default(300_000),
-	// Stripe (phase 2)
+	// Stripe card checkout (plan prices live in config/tiers.ts, not here).
 	STRIPE_SECRET_KEY: z.string().default(''),
 	STRIPE_WEBHOOK_SECRET: z.string().default(''),
-	STRIPE_PRICE_STARTER: z.string().default(''),
-	STRIPE_PRICE_PRO: z.string().default(''),
 	// Crypto payments (Solana Pay, USDC). Crypto checkout is enabled only when
 	// RECEIVE_WALLET is set. Revenue lands in RECEIVE_WALLET.
 	SOLANA_RPC_URL: z.string().url().default('https://api.mainnet-beta.solana.com'),

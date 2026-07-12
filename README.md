@@ -75,8 +75,9 @@ ssh root@5.78.189.124 'cd /opt/flash-props-api && npm install --omit=dev && pm2 
 - Fronted by Caddy: `api.flashodds.live { reverse_proxy localhost:3862 }`
 - Env in `/opt/flash-props-api/.env` (mode 600): PORT, PUBLIC_BASE_URL, API_KEY_SECRET, DATABASE_URL, Stripe keys.
 
-**To enable billing**: set `STRIPE_SECRET_KEY`, `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO`,
-`STRIPE_WEBHOOK_SECRET` in `.env` and restart. Until then, checkout returns a friendly 503.
+**To enable billing**: set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in `.env` and
+restart. Plan prices come from `src/config/tiers.ts` (single source of truth), so no Stripe
+price IDs are needed. Until then, checkout returns a friendly 503.
 
 ## Layout
 

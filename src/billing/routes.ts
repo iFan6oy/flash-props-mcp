@@ -4,7 +4,7 @@ import { env } from '../env.js';
 import { TIERS, type TierId } from '../config/tiers.js';
 import { headlineSport } from '../config/sports.js';
 import { createApiKey } from '../auth/keys.js';
-import { getStripe, tierForPrice } from './stripe.js';
+import { getStripe } from './stripe.js';
 import { provisionForCustomer, revokeForCustomer, setTierForCustomer } from './provision.js';
 import {
 	cryptoEnabled,
@@ -171,7 +171,7 @@ billing.post('/webhook', async (c) => {
 		}
 		case 'customer.subscription.updated': {
 			const sub = event.data.object;
-			const tier = (sub.metadata?.tier as TierId | undefined) ?? tierForPrice(sub.items.data[0]?.price?.id);
+			const tier = sub.metadata?.tier as TierId | undefined;
 			if (tier) setTierForCustomer(String(sub.customer), tier);
 			break;
 		}
