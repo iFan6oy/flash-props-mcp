@@ -59,21 +59,25 @@ Scalar · **Drizzle** + better-sqlite3 · **Stripe** · **@solana/web3.js v1** (
 - [x] Security hardening (prod refuses weak API_KEY_SECRET, secret audit, `.env` never committed)
 - [x] DNS + TLS live
 
-## YOUR open action items (each lights up a feature with one restart)
+## Payments — LIVE (wired 2026-07-11)
 
-Everything below is scaffolded and **degrades gracefully (503) until its env var is
-set** in `/opt/flash-props-api/.env` (mode 600), then `pm2 restart flash-props-api`.
+All rails are configured in `/opt/flash-props-api/.env` (mode 600) and verified in prod.
 
-| To enable | Set in VPS `.env` |
-|-----------|-------------------|
-| **Stripe (cards)** | `STRIPE_SECRET_KEY`, `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PRO`, `STRIPE_WEBHOOK_SECRET` (webhook → `https://api.flashodds.live/billing/webhook`, events `customer.subscription.updated`+`deleted`) |
-| **Solana USDC** | `RECEIVE_WALLET` (your SOL wallet), `SOLANA_RPC_URL` (Helius/QuickNode; public is rate-limited) |
-| **Base USDC** | `EVM_RECEIVE_WALLET` (lowercase or correct checksum), `BASE_RPC_URL` (real Base RPC) |
-| **Sale pings** | `NOTIFY_WEBHOOK` (a Discord channel webhook URL) |
-| **Admin console** | `ADMIN_TOKEN` (`openssl rand -hex 32`), then open `/admin` and paste it |
-| Tune crypto discount | `CRYPTO_DISCOUNT_PCT` (default 10; ~3 = Stripe fee parity) |
+| Rail | Status | Detail |
+|------|--------|--------|
+| **Stripe (cards)** | ✅ LIVE | Live key (shared Flash Stripe acct `acct_1TH…`, sourced from other services' env). Prices: Starter `price_1TsAsZQ6axn1JkeU1Hcm9tQN` ($29/mo), Pro `price_1TsAsaQ6axn1JkeUqs460vfN` ($99/mo), both `lookup_key` flash_props_{starter,pro}_monthly. Webhook `we_1TsAsaQ6axn1JkeUDAujFGoj` → `/billing/webhook` (subscription.updated+deleted). Checkout returns `cs_live_…`. |
+| **Solana USDC** | ✅ LIVE | `RECEIVE_WALLET` = Wallet 1 (dev) `6LHMAZ…vRa7`. Public RPC (rate-limited — see below). |
+| **Base USDC** | ✅ LIVE | `EVM_RECEIVE_WALLET` = `0x4CE9…8BE8`. Public Base RPC. |
+| **Sale pings** | ✅ LIVE | `NOTIFY_WEBHOOK` = media-hub `.general_webhook` (Discord #general). Delivers (204). |
+| **Admin console** | ✅ LIVE | `ADMIN_TOKEN` set (openssl rand -hex 32). Open `/admin`, paste the token (it's in the VPS `.env`). |
 
-`.env.example` documents every variable. Copy it to `.env` and fill in.
+**Remaining nice-to-haves (optional):**
+- **Reliable Solana RPC.** Payment *verification* polls the chain; the public
+  `api.mainnet-beta.solana.com` is rate-limited. If crypto sales get flaky, point
+  `SOLANA_RPC_URL` at the Helius endpoint (already used by crypto-trader). Low volume = fine as-is.
+- `CRYPTO_DISCOUNT_PCT` (default 10; ~3 = Stripe fee parity) if you want to tune the crypto discount.
+
+`.env.example` documents every variable.
 
 ---
 
@@ -129,6 +133,21 @@ ssh root@5.78.189.124 'cd /opt/flash-props-api && rm -rf dist && tar xzf /tmp/fp
    refuses to boot with a default/weak `API_KEY_SECRET`.
 6. **Caddy is shared prod infra** (fronts all his sites). Edit `/etc/caddy/Caddyfile`
    carefully: backup, `caddy validate`, then `systemctl reload caddy`.
+7. **Bovada self-redirect-BLOCKS the VPS.** `bovada.lv/...` returns a 302 loop to
+   itself from the Hetzner datacenter IP, so Bovada yields ZERO data in prod (its
+   live in-game feed is effectively dark). **Underdog is the only working source**
+   and it's fine from the VPS. If you need live/in-game props, front Bovada with a
+   residential/US proxy — until then treat Bovada as best-effort only.
+8. **Underdog carries EVERY sport, not just NBA.** `data/underdog.ts` parses the one
+   `/beta/v5/over_under_lines` feed and indexes by sport (MLB/NFL/NBA/soccer/...).
+   Two footguns it already handles: Underdog labels summer hoops `"BASKETBALL"` (not
+   `"NBA"`), and MLB/NFL stats must NOT be dropped for being unmapped (`PropStat` is a
+   free string — pass them through). The old adapter hard-filtered to `sport_id==='NBA'`,
+   which (with Bovada blocked) made prod return 0 for everything.
+9. **Free tier follows the in-season sport.** `config/sports.ts` `headlineSport()` is
+   date-driven (NBA in season, MLB Jul-Aug, NFL Sep). Free tier `sports: 'in-season'`
+   resolves via `effectiveSports()`; a bare API/MCP call with no `?sport=` auto-swaps to
+   it (`pickSport`/`resolveSport`) instead of 403ing. So the storefront demo is never empty.
 
 ## File map
 
