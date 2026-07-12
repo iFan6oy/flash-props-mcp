@@ -4,7 +4,7 @@ import { env } from '../env.js';
 import { TIERS, type TierId } from '../config/tiers.js';
 import { headlineSport } from '../config/sports.js';
 import { createApiKey } from '../auth/keys.js';
-import { getStripe, priceIdForTier, tierForPrice } from './stripe.js';
+import { getStripe, tierForPrice } from './stripe.js';
 import { provisionForCustomer, revokeForCustomer, setTierForCustomer } from './provision.js';
 import {
 	cryptoEnabled,
@@ -79,11 +79,12 @@ function keyPage(o: { tier: TierId; key?: string; prefix: string; created: boole
 
 function notConfigured(tier: string): string {
 	return page(
-		'Billing not configured',
-		`<h1>Checkout isn't wired yet</h1>
-     <p class="mut">Stripe isn't configured on this instance, so the <b>${tier}</b> plan can't be purchased here yet.</p>
-     <div class="warn">Set <code>STRIPE_SECRET_KEY</code>, <code>STRIPE_PRICE_STARTER</code>, <code>STRIPE_PRICE_PRO</code> and <code>STRIPE_WEBHOOK_SECRET</code> to enable it.</div>
-     <a class="b" href="/#pricing">← Back to pricing</a>`
+		'Checkout unavailable',
+		`<h1>Card checkout is temporarily unavailable</h1>
+     <p class="mut">The <b>${tier}</b> plan can't be purchased by card right now.</p>
+     <div class="warn">You can still start with a free key or contact support for help.</div>
+     <a class="b" href="/billing/free">Get a free key →</a><br/>
+     <a class="b" href="mailto:malone.jaylon@gmail.com?subject=Flash%20Props%20API%20Checkout">Contact support →</a>`
 	);
 }
 
@@ -104,12 +105,22 @@ billing.get('/checkout', async (c) => {
 		return c.json({ error: 'bad_tier', message: 'tier must be starter or pro' }, 400);
 	}
 	const stripe = getStripe();
-	const priceId = priceIdForTier(tier);
-	if (!stripe || !priceId) return c.html(notConfigured(tier), 503);
+	const plan = TIERS[tier];
+	if (!stripe || !plan.priceMonthly) return c.html(notConfigured(tier), 503);
 
 	const session = await stripe.checkout.sessions.create({
 		mode: 'subscription',
-		line_items: [{ price: priceId, quantity: 1 }],
+		line_items: [
+			{
+				price_data: {
+					currency: 'usd',
+					unit_amount: plan.priceMonthly * 100,
+					recurring: { interval: 'month' },
+					product_data: { name: `Flash Props API — ${plan.name}` }
+				},
+				quantity: 1
+			}
+		],
 		metadata: { tier },
 		subscription_data: { metadata: { tier } },
 		allow_promotion_codes: true,
@@ -160,7 +171,7 @@ billing.post('/webhook', async (c) => {
 		}
 		case 'customer.subscription.updated': {
 			const sub = event.data.object;
-			const tier = tierForPrice(sub.items.data[0]?.price?.id);
+			const tier = (sub.metadata?.tier as TierId | undefined) ?? tierForPrice(sub.items.data[0]?.price?.id);
 			if (tier) setTierForCustomer(String(sub.customer), tier);
 			break;
 		}
