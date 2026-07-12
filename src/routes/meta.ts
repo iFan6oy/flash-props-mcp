@@ -440,8 +440,8 @@ function landingHtml(): string {
 <header class="hero wrap">
   <div class="kicker" id="kicker">Jumper. <b>Catch.</b> Base hit.</div>
   <div class="pill"><span class="g"></span> Live now · basketball · MLB · NFL · NHL · NCAA · soccer</div>
-  <h1 class="big">The real-deal<br><span class="accent">sports props API.</span></h1>
-  <p class="sub">Every player prop, every league, unified from real sportsbooks into one fast feed and a real MCP server. Pre-game and live. Built for apps, bots, and the agents that bet smarter than you.</p>
+  <h1 class="big">Every player prop.<br><span class="accent">One API. Zero scraping.</span></h1>
+  <p class="sub">Live player props across NBA, MLB, NFL, NHL, NCAA and soccer, unified from real books into clean JSON and a real MCP server. Free tier, no card. Ship your feature instead of babysitting scrapers.</p>
   <div class="cta">
     <a class="btn" href="/billing/free">Get a free key</a>
     <a class="btn ghost" href="/connect">Connect to Claude →</a>
