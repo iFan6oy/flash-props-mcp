@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import QRCode from 'qrcode';
 import { env } from '../env.js';
+import { utcDay } from '../db/usage.js';
 import { TIERS, type TierId } from '../config/tiers.js';
 import { headlineSport } from '../config/sports.js';
 import { createApiKey } from '../auth/keys.js';
@@ -90,11 +92,70 @@ function notConfigured(tier: string): string {
 }
 
 // --- self-serve free key ---------------------------------------------------
-billing.get('/free', (c) => {
+// Was an unauthenticated GET that minted a DB row on EVERY hit (a crawler could
+// spam keys just by following the link). Now: GET renders a tiny form, POST
+// mints — behind a honeypot and a soft per-IP daily cap. Still one form + one
+// click for a real person.
+const FREE_KEYS_PER_IP_PER_DAY = 3;
+const freeMintByIp = new Map<string, { day: string; count: number }>();
+
+function clientIp(c: Context): string {
+	const xff = c.req.header('x-forwarded-for'); // Caddy sets this in prod
+	if (xff) return xff.split(',')[0]!.trim();
+	return c.req.header('x-real-ip') || 'unknown';
+}
+
+function freeKeyForm(src = '', err = ''): string {
+	const safeSrc = src.replace(/"/g, '&quot;').slice(0, 60);
+	return page(
+		'Get a free key',
+		`<h1>Get a free API key</h1>
+     <p class="mut">Free tier: 250 requests/day on the in-season sport. Enter your email and we'll show your key. We use it only for key delivery and critical service notices.</p>
+     ${err ? `<div class="warn">${err}</div>` : ''}
+     <form method="POST" action="/billing/free" style="margin-top:16px">
+       <input type="email" name="email" required placeholder="you@example.com" autocomplete="email"
+         style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid #232838;background:#0a0c11;color:#eef1f7;font:15px -apple-system,system-ui,sans-serif;margin-bottom:12px"/>
+       <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+         style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"/>
+       <input type="hidden" name="src" value="${safeSrc}"/>
+       <button type="submit" style="width:100%;padding:12px 16px;cursor:pointer">Create my free key →</button>
+     </form>
+     <p class="mut" style="margin-top:12px;font-size:13px">No card required. For informational use only.</p>`
+	);
+}
+
+billing.get('/free', (c) => c.html(freeKeyForm(c.req.query('src') || '')));
+
+billing.post('/free', async (c) => {
+	const form = await c.req.parseBody();
+	// Honeypot: a real user never sees/fills the offscreen "website" field; bots do.
+	if (String(form.website || '').trim()) return c.html(freeKeyForm('', 'Something went wrong. Please try again.'), 400);
+
+	const email = String(form.email || '').trim();
+	if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+		return c.html(freeKeyForm(String(form.src || ''), 'Enter a valid email so we can deliver your key.'), 400);
+	}
+
+	// Soft per-IP daily cap (in-memory throttle, not a hard wall). Deters casual
+	// spam; the per-key daily request quota is the real abuse ceiling.
+	const ip = clientIp(c);
+	const day = utcDay();
+	const seen = freeMintByIp.get(ip);
+	const used = seen && seen.day === day ? seen.count : 0;
+	if (used >= FREE_KEYS_PER_IP_PER_DAY) {
+		return c.html(
+			freeKeyForm('', `You've created the maximum free keys for today (${FREE_KEYS_PER_IP_PER_DAY}). Reuse an existing key, or email support if you need more.`),
+			429
+		);
+	}
+	freeMintByIp.set(ip, { day, count: used + 1 });
+
 	const { record, key } = createApiKey({
 		tier: 'free',
 		label: 'self-serve-free',
-		mode: env.NODE_ENV === 'production' ? 'live' : 'test'
+		mode: env.NODE_ENV === 'production' ? 'live' : 'test',
+		email,
+		source: String(form.src || '').slice(0, 60) || null
 	});
 	return c.html(keyPage({ tier: 'free', key, prefix: record.keyPrefix, created: true }));
 });
