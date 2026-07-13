@@ -276,3 +276,57 @@ export async function getUnderdogPhotoMap(): Promise<Map<string, string>> {
 	}
 	return photoCache?.map ?? new Map();
 }
+
+export interface SportStatus {
+	sport: string;
+	games: number;
+	props: number;
+}
+export interface UnderdogStatus {
+	ok: boolean;
+	fetchedAt: number | null;
+	ageSeconds: number | null;
+	sports: SportStatus[]; // busiest first
+	totalGames: number;
+	totalProps: number;
+	error?: string;
+}
+
+// Live coverage snapshot for the /status page: per-sport game + prop counts and
+// how fresh the data is. Reuses the cached snapshot (5-min TTL) so hitting
+// /status doesn't hammer the upstream. Never throws — a fetch failure returns
+// ok:false with an error string so the status page can say "degraded" honestly.
+export async function getUnderdogStatus(): Promise<UnderdogStatus> {
+	try {
+		const snap = await getUnderdogSnapshot();
+		const sports: SportStatus[] = [];
+		let totalGames = 0;
+		let totalProps = 0;
+		for (const [sport, gameMap] of snap.bySport) {
+			let props = 0;
+			for (const b of gameMap.values()) props += b.props.length;
+			sports.push({ sport, games: gameMap.size, props });
+			totalGames += gameMap.size;
+			totalProps += props;
+		}
+		sports.sort((a, b) => b.props - a.props || b.games - a.games);
+		return {
+			ok: true,
+			fetchedAt: snap.fetchedAt,
+			ageSeconds: Math.max(0, Math.round((Date.now() - snap.fetchedAt) / 1000)),
+			sports,
+			totalGames,
+			totalProps
+		};
+	} catch (err) {
+		return {
+			ok: false,
+			fetchedAt: null,
+			ageSeconds: null,
+			sports: [],
+			totalGames: 0,
+			totalProps: 0,
+			error: err instanceof Error ? err.message : 'upstream fetch failed'
+		};
+	}
+}
