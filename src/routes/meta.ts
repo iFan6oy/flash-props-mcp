@@ -415,9 +415,40 @@ function tierCard(id: keyof typeof TIERS): string {
   </div>`;
 }
 
-function landingHtml(): string {
+// Short chip labels for the coverage strip, derived from SPORT_CATALOG so the
+// list can't drift from what the API actually serves.
+const SPORT_SHORT: Record<string, string> = {
+	nba: 'NBA',
+	basketball: 'WNBA/Summer',
+	mlb: 'MLB',
+	nfl: 'NFL',
+	nhl: 'NHL',
+	ncaab: 'NCAAB',
+	ncaaf: 'NCAAF',
+	soccer: 'SOCCER',
+	tennis: 'TENNIS',
+	cs2: 'CS2',
+	valorant: 'VALORANT',
+	dota2: 'DOTA 2',
+	esports: 'ESPORTS (CoD)'
+};
+
+function landingHtml(status: UnderdogStatus): string {
 	const hl = headlineSport(); // sport a fresh free key can query right now
-	const sportCount = SPORT_CATALOG.length; // stays honest as coverage changes
+	const activeSports = status.sports.length; // sports with lines posted right now
+	const fresh =
+		status.ageSeconds == null
+			? 'unavailable'
+			: status.ageSeconds < 90
+				? `${status.ageSeconds}s ago`
+				: `${Math.round(status.ageSeconds / 60)} min ago`;
+	const liveOk = status.ok && status.totalProps > 0;
+	const statusLabel = liveOk ? 'Live' : status.ok ? 'Reachable' : 'Degraded';
+	const heroLine = liveOk
+		? `Live now: ${status.totalGames} games · ${status.totalProps} props · last fetch ${fresh}`
+		: status.ok
+			? 'Reachable — no active lines posted right now (between slates)'
+			: 'Upstream degraded — see /status for details';
 	return `<!doctype html>
 <html lang="en">
 <head>
@@ -487,6 +518,7 @@ function landingHtml(): string {
     font-size:13px;margin-bottom:26px;backdrop-filter:blur(8px)}
   .pill .g{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green);
     animation:pulse 2.4s ease-in-out infinite}
+  .pill.warn .g{background:#f59e0b;box-shadow:0 0 12px #f59e0b}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
   h1.big{font-size:clamp(40px,8.2vw,84px);line-height:.98;margin:0 0 20px;letter-spacing:-2.5px;font-weight:860;
     text-shadow:0 2px 40px rgba(0,0,0,.6)}
@@ -535,6 +567,8 @@ function landingHtml(): string {
   .card:hover{transform:translateY(-4px);border-color:rgba(245,132,38,.5);box-shadow:0 24px 60px -30px rgba(245,132,38,.5)}
   .card code{font:12.5px var(--mono);color:var(--flash2);background:#0a0c11;border:1px solid var(--line);
     padding:3px 8px;border-radius:6px;display:inline-block;margin-bottom:12px}
+  .card .tag{display:inline-block;margin:0 0 12px 8px;font:800 10px var(--mono);letter-spacing:.5px;color:#1a1206;
+    background:linear-gradient(135deg,var(--flash),var(--flash2));padding:3px 8px;border-radius:6px;vertical-align:middle}
   .card h4{margin:0 0 6px;font-size:16px}
   .card p{margin:0;color:var(--muted);font-size:14px}
 
@@ -594,7 +628,7 @@ function landingHtml(): string {
   @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.scrollcue,.pill .g{animation:none}}
 </style>
 </head>
-<body>
+<body class="no3d">
 <canvas id="fx" aria-hidden="true"></canvas>
 <video id="herovid" autoplay muted loop playsinline preload="auto" poster="/assets/hero-poster.jpg" aria-hidden="true"></video>
 <div class="veil"></div>
@@ -611,13 +645,13 @@ function landingHtml(): string {
 </nav>
 
 <header class="hero wrap">
-  <div class="kicker" id="kicker">Jumper. <b>Catch.</b> Base hit.</div>
-  <div class="pill"><span class="g"></span> The board · MLB · NFL · soccer · tennis · CS2 · Valorant · Dota 2 · CoD</div>
-  <h1 class="big">The props board.<br><span class="accent">One API. Zero scraping.</span></h1>
-  <p class="sub">Clean player-prop data, one API and MCP server. Pre-game lines across MLB, NFL, NBA, NHL, NCAA, soccer, tennis, and esports. Test it free before paying.</p>
+  <div class="kicker">Pre-game player props API</div>
+  <div class="pill${liveOk ? '' : ' warn'}"><span class="g"></span> ${heroLine}</div>
+  <h1 class="big">Player props<br><span class="accent">without the scraper maintenance.</span></h1>
+  <p class="sub">Pre-game player prop lines through REST, OpenAPI, and MCP. Pull props by sport, game, player, or market, and build without babysitting a scraper.</p>
   <div class="cta">
-    <a class="btn" href="/billing/free">Get a free key</a>
-    <a class="btn ghost" href="/docs">View API docs →</a>
+    <a class="btn" href="/billing/free">Get a free API key</a>
+    <a class="btn ghost" href="/docs">View docs →</a>
   </div>
   <div class="code">
     <div class="bar"><i></i><i></i><i></i><span>bash</span></div>
@@ -630,38 +664,70 @@ curl -H <span class="s">"Authorization: Bearer $KEY"</span> \\
 
 <section class="band">
   <div class="wrap">
-    <ul class="coverage reveal" aria-label="Supported sports"><li><i></i>MLB</li><li><i></i>NFL</li><li><i></i>NBA</li><li><i></i>NHL</li><li><i></i>NCAA</li><li><i></i>SOCCER</li><li><i></i>TENNIS</li><li><i></i>CS2</li><li><i></i>VALORANT</li><li><i></i>DOTA 2</li><li><i></i>COD</li></ul>
+    <ul class="coverage reveal" aria-label="Supported sports">${SPORT_CATALOG.map((s) => `<li><i></i>${SPORT_SHORT[s.id] ?? s.id.toUpperCase()}</li>`).join('')}</ul>
     <div class="proof reveal">
-      <div class="p"><div class="n">${sportCount}</div><div class="l">sports, one shape</div></div>
-      <div class="p"><div class="n">MCP</div><div class="l">+ OpenAPI 3.1</div></div>
-      <div class="p"><div class="n">$0</div><div class="l">free tier, no card</div></div>
-      <div class="p"><div class="n">~5 min</div><div class="l">refresh cadence</div></div>
-      <div class="p"><div class="n">REST</div><div class="l">clean JSON, American odds</div></div>
+      <div class="p"><div class="n">${statusLabel}</div><div class="l">API status</div></div>
+      <div class="p"><div class="n">${status.totalGames}</div><div class="l">games today</div></div>
+      <div class="p"><div class="n">${status.totalProps}</div><div class="l">props live</div></div>
+      <div class="p"><div class="n">${activeSports}</div><div class="l">sports active now</div></div>
+      <div class="p"><div class="n">${fresh}</div><div class="l">last upstream fetch</div></div>
     </div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <h2 class="reveal">A small API that does the job</h2>
-    <p class="lead reveal">Clean JSON, American odds, and the same fields across every sport.</p>
+    <h2 class="reveal">What you actually get</h2>
+    <p class="lead reveal">Same response shape across sports: player, market, line, over odds, under odds, game, source, and snapshot time.</p>
     <div class="schema-demo reveal">
-      <div class="schema-copy"><h3>Consistent fields across sports</h3><p>The API returns the same core structure across every sport and league.</p><div class="schema-points"><span>Normalized players, stats, lines, and odds</span><span>Pre-game markets, one shape across every sport</span><span>Source and snapshot freshness on every record</span></div></div>
-      <div class="response"><div class="rbar"><span>example response</span><span class="ok">200 OK · application/json</span></div><pre>{
-  <span class="rk">"sport"</span>: <span class="rv">"${hl}"</span>,
-  <span class="rk">"player"</span>: <span class="rv">"Sample Player"</span>,
-  <span class="rk">"stat"</span>: <span class="rv">"points"</span>,
-  <span class="rk">"line"</span>: <span class="rn">24.5</span>,
-  <span class="rk">"overOdds"</span>: <span class="rn">-115</span>,
+      <div class="schema-copy"><h3>One row shape, every sport</h3><p>A real row from <code>GET /api/v1/props</code> — the actual field names, not relabeled for the pitch.</p><div class="schema-points"><span><b>player / stat / line</b> — who, which market, and the posted number</span><span><b>overOdds / underOdds</b> — American odds for the over and the under</span><span><b>gameState / source</b> — pre, live, or final, and which upstream book it came from</span></div></div>
+      <div class="response"><div class="rbar"><span>GET /api/v1/props?sport=mlb</span><span class="ok">200 OK · application/json</span></div><pre>{
+  <span class="rk">"eventId"</span>: <span class="rv">"ud-178892"</span>,
+  <span class="rk">"sport"</span>: <span class="rv">"mlb"</span>,
+  <span class="rk">"player"</span>: <span class="rv">"Aaron Judge"</span>,
+  <span class="rk">"stat"</span>: <span class="rv">"total_bases"</span>,
+  <span class="rk">"line"</span>: <span class="rn">1.5</span>,
+  <span class="rk">"overOdds"</span>: <span class="rn">-120</span>,
+  <span class="rk">"underOdds"</span>: <span class="rn">-110</span>,
   <span class="rk">"gameState"</span>: <span class="rv">"pre"</span>,
   <span class="rk">"source"</span>: <span class="rv">"underdog"</span>
 }</pre></div>
     </div>
     <div class="grid reveal">
-      <div class="card"><code>GET /api/v1/games</code><h4>Today's games</h4><p>Every matchup with props posted, live games first.</p></div>
-      <div class="card"><code>GET /games/{id}/props</code><h4>Props for a game</h4><p>All player lines for one matchup, filterable by stat.</p></div>
-      <div class="card"><code>GET /api/v1/props</code><h4>Market-wide scan</h4><p>The whole slate for a sport, flattened into one flow feed.</p></div>
-      <div class="card"><code>GET /api/v1/me</code><h4>Key &amp; usage</h4><p>Your tier, limits, and live request counts.</p></div>
+      <div class="card"><code>GET /sports</code><h4>What's enabled</h4><p>The sport catalog and which ones your key can access.</p></div>
+      <div class="card"><code>GET /games</code><h4>Today's games</h4><p>Every matchup with props posted, live games first.</p></div>
+      <div class="card"><code>GET /games/{id}/props</code><h4>Pull one game</h4><p>Every prop available for a specific matchup.</p></div>
+      <div class="card"><code>GET /props</code><h4>Scan the board</h4><p>The whole slate for a sport, flattened into one feed.</p></div>
+      <div class="card"><code>GET /props/history</code><span class="tag">PRO</span><h4>Line history</h4><p>How a prop's line has moved since it opened.</p></div>
+      <div class="card"><code>GET /props/movement</code><span class="tag">PRO</span><h4>Biggest movers</h4><p>Props that moved the most in the last 24 hours.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <h2 class="reveal">What this doesn't do (yet)</h2>
+    <p class="lead reveal">Straight talk before you build on it.</p>
+    <div class="grid reveal">
+      <div class="card"><h4>Pre-game only</h4><p>No live in-game lines right now. Every row is a pre-game snapshot.</p></div>
+      <div class="card"><h4>Coverage follows the season</h4><p>An out-of-season sport can come back empty until its games are posted.</p></div>
+      <div class="card"><h4>One primary source</h4><p>Underdog is the primary upstream today. More sources are on the roadmap, not live.</p></div>
+      <div class="card"><h4>Not a sportsbook</h4><p>Flash Props API doesn't accept wagers, place bets, or take a cut of anything.</p></div>
+      <div class="card"><h4>Not betting advice</h4><p>This is data, not picks, predictions, or guaranteed edges.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2 class="reveal">Built for</h2>
+    <p class="lead reveal">Same API, different jobs. Pick the one that's you.</p>
+    <div class="involve reveal">
+      <div class="inv"><div class="ic">SOLO DEVS</div><h4>Ship without scrapers</h4><p>Build a props dashboard, slate scanner, or internal tool without writing scrapers.</p><a href="/billing/free">Get a free key →</a></div>
+      <div class="inv"><div class="ic">DISCORD BOTS</div><h4>Post the board</h4><p>Send player prop lines into a server by sport, game, or market.</p><a href="https://github.com/iFan6oy/flash-props-discord-bot">Bot starter on GitHub →</a></div>
+      <div class="inv"><div class="ic">AI AGENTS</div><h4>Query it from Claude</h4><p>Let Claude, Cursor, or another MCP client query the board directly.</p><a href="/connect">MCP setup →</a></div>
+      <div class="inv"><div class="ic">CONTENT</div><h4>Automate the slate</h4><p>Generate daily prop tables, matchup notes, and slate summaries.</p><a href="/docs">View API docs →</a></div>
+      <div class="inv"><div class="ic">PROTOTYPING</div><h4>Ship features faster</h4><p>Prototype prop movement, history, and board-scanning features without building the data layer yourself.</p><a href="/billing/checkout?tier=pro">See Pro →</a></div>
     </div>
   </div>
 </section>
@@ -669,9 +735,10 @@ curl -H <span class="s">"Authorization: Bearer $KEY"</span> \\
 <section class="band">
   <div class="wrap">
     <div class="agent reveal">
-      <h2>Use it through MCP</h2>
-      <p class="lead">Connect Claude, Cursor, or another MCP client directly to the API. The same data is also available through REST.</p>
-      <div class="askbox"><span class="u">you ›</span> what are the best strikeout props tonight?<br><span style="color:#6b7688">flash-props · scan_props → 5 tools, live data</span></div>
+      <h2>Ask the props board questions from Claude or Cursor</h2>
+      <p class="lead">Flash Props API ships an MCP server, so agent clients can call the same props data without you writing glue code first. Five tools: list_sports, list_games, get_game_props, scan_props, find_game.</p>
+      <div class="askbox"><span class="u">you ›</span> what NBA points props are live right now?<br><span style="color:#6b7688">flash-props · scan_props(sport: nba, stat: points) → live rows</span></div>
+      <p class="lead" style="margin:14px 0 0;font-size:14px">Also works: <i>"find tonight's Yankees game and show me the props"</i> and <i>"scan MLB strikeout props."</i></p>
       <div class="chips">
         <div class="chip"><b>MCP server</b> · <a href="/connect">connect →</a></div>
         <div class="chip"><b>OpenAPI 3.1</b> · <a href="/openapi.json">/openapi.json</a></div>
@@ -699,24 +766,11 @@ curl -H <span class="s">"Authorization: Bearer $KEY"</span> \\
 </section>
 
 <section class="band">
-  <div class="wrap">
-    <h2 class="reveal">Ways to use it</h2>
-    <p class="lead reveal">REST for your application, MCP for supported clients, and custom terms for higher volume.</p>
-    <div class="involve reveal">
-      <div class="inv"><div class="ic">REST API</div><h4>Apps and dashboards</h4><p>Use a free key while you build, then upgrade when you need more volume.</p><a href="/billing/free">Get a free key →</a></div>
-      <div class="inv"><div class="ic">MCP</div><h4>Claude and Cursor</h4><p>Add the MCP server to a supported client and query props directly.</p><a href="/connect">Setup instructions →</a></div>
-      <div class="inv"><div class="ic">PRO</div><h4>The full board</h4><p>Every sport we cover, higher request limits, and bigger market scans.</p><a href="/billing/checkout?tier=pro">View Pro →</a></div>
-      <div class="inv"><div class="ic">CUSTOM</div><h4>Higher volume</h4><p>Contact us for custom volume, rate limits, and support terms.</p><a href="mailto:malone.jaylon@gmail.com?subject=Flash%20Props%20API%20Partnership">Email us →</a></div>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="wrap"><div class="final-cta reveal"><h2>Try the API before paying</h2><p class="lead">The free tier includes 250 requests per day and does not require a card.</p><div class="cta"><a class="btn" href="/billing/free">Get a free key</a><a class="btn ghost" href="/docs">Read the docs →</a></div></div><p class="disclaimer">League, team, and sport names identify data coverage only. Flash Props API is an independent product and is not sponsored by, endorsed by, or affiliated with the NBA, MLB, NFL, NHL, NCAA, their teams, any esports league or organizer, or any sportsbook or DFS operator. Data is provided for informational purposes only. Flash Props does not accept wagers and is not a sportsbook or gambling operator. 21+. If you or someone you know has a gambling problem, call 1-800-GAMBLER.</p></div>
+  <div class="wrap"><div class="final-cta reveal"><h2>Try the API before paying</h2><p class="lead">The free tier includes 250 requests per day and does not require a card.</p><div class="cta"><a class="btn" href="/billing/free">Get a free key</a><a class="btn ghost" href="/docs">Read the docs →</a></div></div><p class="disclaimer">Flash Props API is an independent developer tool. It is not a sportsbook, does not accept wagers, and does not provide betting advice. Data availability depends on active sports, upstream availability, and scheduled refreshes. League, team, and sport names identify data coverage only — Flash Props API is not sponsored by, endorsed by, or affiliated with the NBA, MLB, NFL, NHL, NCAA, their teams, any esports league or organizer, or any sportsbook or DFS operator. 21+. If you or someone you know has a gambling problem, call 1-800-GAMBLER.</p></div>
 </section>
 
 <footer>
-  <div>© Flash AI Solutions · Flash Props API</div>
+  <div>Flash Props API <span style="color:var(--muted)">— independent sports data tools for builders · © Flash AI Solutions</span></div>
   <div><a href="/docs">Docs</a> · <a href="/dashboard">Dashboard</a> · <a href="/connect">Connect</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/skill.md">Agents</a> · <a href="/status">Status</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/aup">Acceptable Use</a> · <a href="mailto:malone.jaylon@gmail.com?subject=Flash%20Props%20API%20Support">Support</a></div>
 </footer>
 
@@ -742,119 +796,6 @@ curl -H <span class="s">"Authorization: Bearer $KEY"</span> \\
       vio.observe(hero);
     }
     document.addEventListener('visibilitychange',function(){if(document.hidden){v.pause();}else if(hero&&hero.getBoundingClientRect().bottom>0){v.play().catch(function(){});}});
-    return;
-  }
-
-  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function fallback(){ document.body.classList.add('no3d'); }
-  function hasWebGL(){ try{ var c=document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl')||c.getContext('experimental-webgl'))); }catch(e){ return false; } }
-  if(reduce || !hasWebGL()){ fallback(); return; }
-
-  var s=document.createElement('script');
-  s.src='https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js';
-  s.onerror=fallback;
-  s.onload=function(){ try{ initScene(); }catch(e){ fallback(); } };
-  document.head.appendChild(s);
-
-  function tex(kind){
-    var c=document.createElement('canvas'); c.width=c.height=256; var x=c.getContext('2d');
-    if(kind==='basketball'){
-      x.fillStyle='#e2762b'; x.fillRect(0,0,256,256);
-      x.strokeStyle='#140d05'; x.lineWidth=7;
-      x.beginPath(); x.moveTo(128,0); x.lineTo(128,256); x.stroke();
-      x.beginPath(); x.moveTo(0,128); x.lineTo(256,128); x.stroke();
-      x.beginPath(); x.arc(-40,128,120,-1.0,1.0); x.stroke();
-      x.beginPath(); x.arc(296,128,120,Math.PI-1.0,Math.PI+1.0); x.stroke();
-    } else if(kind==='baseball'){
-      x.fillStyle='#f4f4f2'; x.fillRect(0,0,256,256);
-      x.strokeStyle='#d21f47'; x.lineWidth=4;
-      x.beginPath(); x.arc(30,128,150,-0.8,0.8); x.stroke();
-      x.beginPath(); x.arc(226,128,150,Math.PI-0.8,Math.PI+0.8); x.stroke();
-      x.lineWidth=2;
-      for(var i=0;i<16;i++){var t=-0.8+i*(1.6/15);x.beginPath();x.moveTo(30+Math.cos(t)*150,128+Math.sin(t)*150);x.lineTo(30+Math.cos(t)*138,128+Math.sin(t)*138);x.stroke();}
-    } else {
-      x.fillStyle='#6a3d24'; x.fillRect(0,0,256,256);
-      x.strokeStyle='#efe7da'; x.lineWidth=8;
-      x.beginPath(); x.moveTo(128,84); x.lineTo(128,172); x.stroke();
-      x.lineWidth=4;
-      for(var j=0;j<5;j++){var yy=92+j*18;x.beginPath();x.moveTo(116,yy);x.lineTo(140,yy);x.stroke();}
-      x.lineWidth=7; x.beginPath(); x.moveTo(40,60);x.lineTo(40,196);x.moveTo(216,60);x.lineTo(216,196);x.stroke();
-    }
-    return new THREE.CanvasTexture(c);
-  }
-  function glowSprite(hex){
-    var c=document.createElement('canvas'); c.width=c.height=128; var x=c.getContext('2d');
-    var g=x.createRadialGradient(64,64,0,64,64,64);
-    g.addColorStop(0,'rgba(255,255,255,.9)'); g.addColorStop(.25,hex); g.addColorStop(1,'rgba(0,0,0,0)');
-    x.fillStyle=g; x.fillRect(0,0,128,128);
-    var m=new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.55});
-    return new THREE.Sprite(m);
-  }
-
-  function initScene(){
-    var canvas=document.getElementById('fx');
-    var renderer=new THREE.WebGLRenderer({canvas:canvas,alpha:true,antialias:true});
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.7));
-    var scene=new THREE.Scene();
-    var camera=new THREE.PerspectiveCamera(48,window.innerWidth/window.innerHeight,.1,100);
-    camera.position.set(0,0,7);
-
-    scene.add(new THREE.AmbientLight(0xffffff,.55));
-    var key=new THREE.DirectionalLight(0xffffff,.9); key.position.set(3,4,5); scene.add(key);
-    var rim=new THREE.PointLight(0xf97316,60,40); rim.position.set(-4,2,3); scene.add(rim);
-
-    var group=new THREE.Group(); scene.add(group);
-    var specs=[
-      {kind:'basketball',pos:[-2.6,.35,0],r:1.02,glow:'rgba(249,115,22,.85)'},
-      {kind:'football',  pos:[.15,-.55,.7],r:1.15,glow:'rgba(139,94,52,.8)'},
-      {kind:'baseball',  pos:[2.7,.6,-.3],r:.78,glow:'rgba(225,29,72,.7)'}
-    ];
-    var balls=[];
-    for(var i=0;i<specs.length;i++){
-      var sp=specs[i];
-      var geo=new THREE.SphereGeometry(sp.r,48,48);
-      var mat=new THREE.MeshStandardMaterial({map:tex(sp.kind),roughness:.62,metalness:.12});
-      var mesh=new THREE.Mesh(geo,mat);
-      mesh.position.set(sp.pos[0],sp.pos[1],sp.pos[2]);
-      if(sp.kind==='football') mesh.scale.set(1,.62,.62);
-      var gl=glowSprite(sp.glow); gl.scale.set(sp.r*6,sp.r*6,1); gl.position.copy(mesh.position); gl.position.z-=.6;
-      group.add(gl); group.add(mesh);
-      balls.push({mesh:mesh,base:mesh.position.clone(),spin:.12+i*.06,phase:i*2.1});
-    }
-
-    var N=Math.min(window.innerWidth<700?420:820,900), pg=new THREE.BufferGeometry(), arr=new Float32Array(N*3);
-    for(var p=0;p<N;p++){arr[p*3]=(Math.random()-.5)*22;arr[p*3+1]=(Math.random()-.5)*13;arr[p*3+2]=(Math.random()-.5)*10-2;}
-    pg.setAttribute('position',new THREE.BufferAttribute(arr,3));
-    var pm=new THREE.PointsMaterial({color:0xffb477,size:.03,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false});
-    var pts=new THREE.Points(pg,pm); scene.add(pts);
-
-    var accents=[new THREE.Color(0xf97316),new THREE.Color(0x8b5e34),new THREE.Color(0xe11d48)];
-    var mx=0,my=0, running=true, clock=new THREE.Clock();
-    window.addEventListener('pointermove',function(e){mx=(e.clientX/window.innerWidth-.5);my=(e.clientY/window.innerHeight-.5);},{passive:true});
-    document.addEventListener('visibilitychange',function(){running=!document.hidden; if(running){clock.start();loop();}});
-    window.addEventListener('resize',function(){camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);});
-    renderer.setSize(window.innerWidth,window.innerHeight);
-
-    function loop(){
-      if(!running) return;
-      requestAnimationFrame(loop);
-      var t=clock.getElapsedTime();
-      for(var i=0;i<balls.length;i++){var b=balls[i];b.mesh.rotation.y+=b.spin*0.03;b.mesh.rotation.x=Math.sin(t*.4+b.phase)*.12;b.mesh.position.y=b.base.y+Math.sin(t*.7+b.phase)*.18;}
-      var seg=(t/3.2)%3, idx=Math.floor(seg), nxt=(idx+1)%3, f=seg-idx;
-      rim.color.copy(accents[idx]).lerp(accents[nxt],f);
-      rim.position.x=Math.cos(t*.3)*4; rim.position.y=Math.sin(t*.4)*2+1;
-      group.rotation.y = mx*0.35; group.rotation.x = my*0.2;
-      camera.position.x += (mx*0.7 - camera.position.x)*0.05;
-      camera.position.y += (-my*0.5 - camera.position.y)*0.05;
-      camera.lookAt(0,0,0);
-      pts.rotation.y=t*.02; pts.rotation.x=t*.01;
-      renderer.render(scene,camera);
-    }
-    loop();
-
-    var kick=document.getElementById('kicker');
-    var lines=['Jumper. <b>Catch.</b> Base hit.','<b>Jumper.</b> Catch. Base hit.','Jumper. Catch. <b>Base hit.</b>'];
-    var ki=0; setInterval(function(){ki=(ki+1)%lines.length; if(kick) kick.innerHTML=lines[ki];},1400);
   }
 })();
 </script>
@@ -862,4 +803,4 @@ curl -H <span class="s">"Authorization: Bearer $KEY"</span> \\
 </html>`;
 }
 
-meta.get('/', (c) => c.html(landingHtml()));
+meta.get('/', async (c) => c.html(landingHtml(await getUnderdogStatus())));

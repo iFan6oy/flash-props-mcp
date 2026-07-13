@@ -34,8 +34,14 @@ export const TIERS: Record<TierId, Tier> = {
 		realtime: true,
 		sports: 'in-season',
 		scanLimit: 25,
-		blurb: 'Kick the tires on whatever league is in season today.',
-		features: ['Current in-season sport', '250 requests/day', 'Small scans (25 rows)', 'REST + MCP', 'Community support']
+		blurb: 'Test the current live board with the active sports available today.',
+		features: [
+			'Current in-season sport',
+			'250 requests/day',
+			'Small scans (25 rows)',
+			'REST + MCP',
+			'Community support'
+		]
 	},
 	starter: {
 		id: 'starter',
@@ -46,7 +52,7 @@ export const TIERS: Record<TierId, Tier> = {
 		realtime: true,
 		sports: 'all',
 		scanLimit: 100,
-		blurb: 'For personal projects and small apps. Every active sport we cover.',
+		blurb: 'For side projects, Discord bots, and small dashboards.',
 		features: [
 			'All active sports (incl. tennis + esports)',
 			'10,000 requests/day',
@@ -64,7 +70,7 @@ export const TIERS: Record<TierId, Tier> = {
 		realtime: true,
 		sports: 'all',
 		scanLimit: 500,
-		blurb: 'For products that need real volume and the full board.',
+		blurb: 'For heavier board scans, prop history, movement tracking, and production prototypes.',
 		features: [
 			'Everything in Starter',
 			'100,000 requests/day',
@@ -82,13 +88,13 @@ export const TIERS: Record<TierId, Tier> = {
 		realtime: true,
 		sports: 'all',
 		scanLimit: 5_000,
-		blurb: 'Custom volume, higher rate limits, and support terms.',
+		blurb: 'For higher limits, custom support, or larger usage patterns.',
 		features: ['Everything in Pro', 'Custom volume + rate limits', 'Dedicated support', 'SLA discussion']
 	}
 };
 
 export function tierOf(id: string): Tier {
-	return TIERS[(id as TierId)] ?? TIERS.free;
+	return TIERS[id as TierId] ?? TIERS.free;
 }
 
 // Resolve a tier's access to a concrete value for right now. The dynamic
