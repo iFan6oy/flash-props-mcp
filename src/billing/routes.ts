@@ -10,6 +10,7 @@ import { getStripe } from './stripe.js';
 import { provisionForCustomer, revokeForCustomer, setTierForCustomer, customerIdForKey } from './provision.js';
 import { stashReveal, takeReveal } from './reveal.js';
 import { sendKeyEmail } from '../email.js';
+import { shell } from '../routes/shell.js';
 import {
 	cryptoEnabled,
 	enabledChains,
@@ -34,28 +35,9 @@ export const billing = new Hono();
 
 const BASE = env.PUBLIC_BASE_URL;
 
-// --- shared HTML shell -----------------------------------------------------
+// --- shared HTML shell (premium chrome from routes/shell.ts) ---------------
 function page(title: string, inner: string): string {
-	return `<!doctype html><html lang="en"><head><meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/><title>${title}</title>
-<style>
-  body{margin:0;background:radial-gradient(1000px 500px at 70% -10%,rgba(245,132,38,.14),transparent 60%),#0b0d12;
-    color:#eef1f7;font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
-    min-height:100vh;display:grid;place-items:center;padding:24px}
-  .box{max-width:560px;width:100%;background:#12151d;border:1px solid #232838;border-radius:18px;padding:34px}
-  h1{margin:0 0 6px;font-size:24px}.mut{color:#9aa3b6}
-  .key{display:flex;gap:8px;margin:18px 0}
-  code{font:14px ui-monospace,Menlo,Consolas,monospace;background:#0a0c11;border:1px solid #232838;color:#ff9d47;
-    padding:12px 14px;border-radius:10px;flex:1;overflow-x:auto;white-space:nowrap}
-  button{background:linear-gradient(135deg,#f58426,#ff9d47);color:#1a1206;font-weight:700;border:0;
-    padding:0 16px;border-radius:10px;cursor:pointer}
-  a.b{display:inline-block;margin-top:10px;color:#ff9d47;text-decoration:none}
-  .warn{background:#1a130a;border:1px solid #3a2a12;color:#ffbf80;padding:12px 14px;border-radius:10px;font-size:14px}
-  pre{background:#0a0c11;border:1px solid #232838;border-radius:10px;padding:14px;overflow-x:auto;font-size:13px;color:#d7deee}
-</style></head><body><div class="box">${inner}</div>
-<script>function cp(){const k=document.getElementById('k').innerText;navigator.clipboard.writeText(k);
-  const b=document.getElementById('c');b.innerText='Copied';setTimeout(()=>b.innerText='Copy',1500);}</script>
-</body></html>`;
+	return shell(title, inner, { layout: 'center' });
 }
 
 function keyPage(o: { tier: TierId; key?: string; prefix: string; created: boolean }): string {

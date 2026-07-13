@@ -65,7 +65,7 @@ All rails are configured in `/opt/flash-props-api/.env` (mode 600) and verified 
 
 | Rail | Status | Detail |
 |------|--------|--------|
-| **Stripe (cards)** | ✅ LIVE | Live key (shared Flash Stripe acct `acct_1TH…`, sourced from other services' env). Prices: Starter `price_1TsAsZQ6axn1JkeU1Hcm9tQN` ($29/mo), Pro `price_1TsAsaQ6axn1JkeUqs460vfN` ($99/mo), both `lookup_key` flash_props_{starter,pro}_monthly. Webhook `we_1TsAsaQ6axn1JkeUDAujFGoj` → `/billing/webhook` (subscription.updated+deleted). Checkout returns `cs_live_…`. |
+| **Stripe (cards)** | ✅ LIVE | Live key (shared Flash Stripe acct, sourced from other services' env). **Prices come from `src/config/tiers.ts` inline `price_data`: Starter $15/mo, Pro $39/mo.** The old fixed Price-ID / `lookup_key` indirection was removed 2026-07-12 (tiers.ts is the single source of truth). Webhook → `/billing/webhook`, now handles **`checkout.session.completed`** (provisioning, added 2026-07-13) + `subscription.updated`/`deleted`. |
 | **Solana USDC** | ✅ LIVE | `RECEIVE_WALLET` = Wallet 1 (dev) `6LHMAZ…vRa7`. Public RPC (rate-limited — see below). |
 | **Base USDC** | ✅ LIVE | `EVM_RECEIVE_WALLET` = `0x4CE9…8BE8`. Public Base RPC. |
 | **Sale pings** | ✅ LIVE | `NOTIFY_WEBHOOK` = media-hub `.general_webhook` (Discord #general). Delivers (204). |

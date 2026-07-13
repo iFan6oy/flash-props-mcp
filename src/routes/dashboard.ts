@@ -14,6 +14,7 @@ import { getUsageToday } from '../db/usage.js';
 import { TIERS, tierOf, type TierId } from '../config/tiers.js';
 import { getStripe } from '../billing/stripe.js';
 import { sendMagicLink } from '../email.js';
+import { shell } from './shell.js';
 
 export const dashboard = new Hono();
 
@@ -61,33 +62,9 @@ function fmtDate(ms: number | null): string {
 	return ms ? new Date(ms).toISOString().slice(0, 10) : '—';
 }
 
-// --- shared shell ----------------------------------------------------------
+// --- shared shell (premium chrome from routes/shell.ts) --------------------
 function page(title: string, inner: string): string {
-	return `<!doctype html><html lang="en"><head><meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/><title>${title} · Flash Props</title>
-<style>
-  :root{--bg:#0b0d12;--panel:#12151d;--line:#232838;--ink:#eef1f7;--mut:#9aa3b6;--flash:#f58426;--flash2:#ff9d47;--green:#35d07f;--red:#ff5c6c}
-  *{box-sizing:border-box}body{margin:0;background:radial-gradient(1000px 500px at 72% -10%,rgba(245,132,38,.12),transparent 60%),var(--bg);color:var(--ink);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif}
-  .wrap{max-width:760px;margin:0 auto;padding:30px 22px 60px}
-  .box{max-width:460px;margin:8vh auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:30px}
-  h1{font-size:22px;margin:0 0 6px}.mut{color:var(--mut)}a{color:var(--flash2)}.small{font-size:13px}
-  input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:#0a0c11;color:var(--ink);font:15px inherit;margin:12px 0}
-  button{background:linear-gradient(135deg,var(--flash),var(--flash2));color:#1a1206;font-weight:700;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;font:inherit}
-  button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:600}
-  button.danger{background:transparent;border:1px solid var(--red);color:var(--red)}
-  .warn{background:#1a130a;border:1px solid #3a2a12;color:#ffbf80;padding:12px 14px;border-radius:10px;font-size:14px;margin:12px 0}
-  code{font:13px ui-monospace,Menlo,Consolas,monospace;color:var(--flash2)}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0}
-  .row{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
-  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;border:1px solid var(--line)}
-  .on{color:var(--green);border-color:#1c3a2a}.off{color:var(--red);border-color:#3a1c22}
-  .meta{color:var(--mut);font-size:13px;margin:8px 0}
-  .bar{height:6px;background:#0a0c11;border-radius:999px;overflow:hidden;margin:6px 0}
-  .bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--flash),var(--flash2))}
-  .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-  header.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-  pre{background:#0a0c11;border:1px solid var(--line);border-radius:10px;padding:14px;overflow-x:auto;font-size:13px;color:var(--flash2)}
-</style></head><body>${inner}</body></html>`;
+	return shell(title, inner, { active: 'dashboard', narrow: true });
 }
 
 // --- login (email form) ----------------------------------------------------

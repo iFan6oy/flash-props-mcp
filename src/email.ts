@@ -51,6 +51,7 @@ function keyEmailBody(o: KeyEmailOpts): { html: string; text: string } {
 		: `<a href="${base}/#pricing" style="color:#f58426">Upgrade</a>`;
 
 	const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,system-ui,sans-serif;max-width:520px;margin:0 auto;color:#11151d">
+  <div style="font-weight:800;font-size:16px;letter-spacing:-.01em;margin:0 0 18px;color:#0b0d12">⚡ Flash Props <span style="color:#9aa3b6;font-weight:600;font-size:13px">API</span></div>
   <h2 style="margin:0 0 2px">Your Flash Props API key</h2>
   <p style="color:#5b667a;margin:0 0 16px">${tierName} tier</p>
   <p style="margin:0 0 6px">Here's your key. Keep it secret — it grants access under your account.</p>
@@ -103,6 +104,7 @@ export async function sendMagicLink(to: string, link: string): Promise<boolean> 
 	try {
 		const base = env.PUBLIC_BASE_URL;
 		const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,system-ui,sans-serif;max-width:520px;margin:0 auto;color:#11151d">
+  <div style="font-weight:800;font-size:16px;letter-spacing:-.01em;margin:0 0 18px;color:#0b0d12">⚡ Flash Props <span style="color:#9aa3b6;font-weight:600;font-size:13px">API</span></div>
   <h2 style="margin:0 0 6px">Sign in to Flash Props</h2>
   <p style="margin:0 0 16px">Click below to open your dashboard. This link expires in 30 minutes.</p>
   <p style="margin:0 0 18px"><a href="${link}" style="display:inline-block;background:#f58426;color:#1a1206;font-weight:700;text-decoration:none;padding:11px 18px;border-radius:10px">Open my dashboard</a></p>
