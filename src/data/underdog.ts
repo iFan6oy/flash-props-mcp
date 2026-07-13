@@ -15,6 +15,7 @@
 
 import { BROWSER_UA, normName, toAmerican } from './types.js';
 import type { GameRef, PlayerProp, PropsResult } from './types.js';
+import { recordSnapshot, type SnapshotInput } from './snapshots.js';
 
 const UNDERDOG_URL = 'https://api.underdogfantasy.com/beta/v5/over_under_lines';
 const SNAPSHOT_TTL_MS = 5 * 60 * 1000; // 5 min — props update frequently
@@ -218,7 +219,33 @@ export async function getUnderdogSnapshot(): Promise<Snapshot> {
 		}
 	}
 
-	cache = { bySport, fetchedAt: Date.now() };
+	const fetchedAt = Date.now();
+	cache = { bySport, fetchedAt };
+
+	// Archive line movement (change-based; best-effort, never breaks the fetch).
+	try {
+		const flat: SnapshotInput[] = [];
+		for (const [sport, gameMap] of bySport) {
+			for (const b of gameMap.values()) {
+				for (const p of b.props) {
+					flat.push({
+						sport,
+						eventId: `ud-${b.gameId}`,
+						player: p.player,
+						playerId: p.playerId,
+						stat: p.stat,
+						line: p.line,
+						overOdds: p.overOdds,
+						underOdds: p.underOdds,
+						startTime: b.startTime
+					});
+				}
+			}
+		}
+		recordSnapshot(fetchedAt, 'underdog', flat);
+	} catch {
+		/* archiving is best-effort */
+	}
 	return cache;
 }
 
@@ -275,4 +302,58 @@ export async function getUnderdogPhotoMap(): Promise<Map<string, string>> {
 		/* keep stale map if we have one */
 	}
 	return photoCache?.map ?? new Map();
+}
+
+export interface SportStatus {
+	sport: string;
+	games: number;
+	props: number;
+}
+export interface UnderdogStatus {
+	ok: boolean;
+	fetchedAt: number | null;
+	ageSeconds: number | null;
+	sports: SportStatus[]; // busiest first
+	totalGames: number;
+	totalProps: number;
+	error?: string;
+}
+
+// Live coverage snapshot for the /status page: per-sport game + prop counts and
+// how fresh the data is. Reuses the cached snapshot (5-min TTL) so hitting
+// /status doesn't hammer the upstream. Never throws — a fetch failure returns
+// ok:false with an error string so the status page can say "degraded" honestly.
+export async function getUnderdogStatus(): Promise<UnderdogStatus> {
+	try {
+		const snap = await getUnderdogSnapshot();
+		const sports: SportStatus[] = [];
+		let totalGames = 0;
+		let totalProps = 0;
+		for (const [sport, gameMap] of snap.bySport) {
+			let props = 0;
+			for (const b of gameMap.values()) props += b.props.length;
+			sports.push({ sport, games: gameMap.size, props });
+			totalGames += gameMap.size;
+			totalProps += props;
+		}
+		sports.sort((a, b) => b.props - a.props || b.games - a.games);
+		return {
+			ok: true,
+			fetchedAt: snap.fetchedAt,
+			ageSeconds: Math.max(0, Math.round((Date.now() - snap.fetchedAt) / 1000)),
+			sports,
+			totalGames,
+			totalProps
+		};
+	} catch (err) {
+		return {
+			ok: false,
+			fetchedAt: null,
+			ageSeconds: null,
+			sports: [],
+			totalGames: 0,
+			totalProps: 0,
+			error: err instanceof Error ? err.message : 'upstream fetch failed'
+		};
+	}
 }

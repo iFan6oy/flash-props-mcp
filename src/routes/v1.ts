@@ -3,6 +3,7 @@ import type { AppEnv } from '../app-env.js';
 import { authMiddleware } from '../auth/middleware.js';
 import { rateLimitMiddleware } from '../rate-limit/middleware.js';
 import { listGames, getProps, scanProps } from '../data/props.js';
+import { getPropHistory, getMovement } from '../data/snapshots.js';
 import { sportAllowed, effectiveSports, type Tier } from '../config/tiers.js';
 import { SPORT_CATALOG, headlineSport } from '../config/sports.js';
 import { getUsageToday } from '../db/usage.js';
@@ -18,7 +19,11 @@ import {
 	SportQuery,
 	EventIdParam,
 	PropsQuery,
-	ScanQuery
+	ScanQuery,
+	PropHistorySchema,
+	MovementResponseSchema,
+	HistoryQuery,
+	MovementQuery
 } from '../openapi/schemas.js';
 
 export const v1 = new OpenAPIHono<AppEnv>({
@@ -185,6 +190,78 @@ v1.openapi(
 		const requested = limit ?? tier.scanLimit;
 		const rows = gateScan(tier, await scanProps({ sport: picked, stat, limit: Math.min(requested, tier.scanLimit) }));
 		return c.json({ sport: picked, stat: stat ?? null, count: rows.length, rows }, 200);
+	}
+);
+
+// Line history + movement are Pro (and Enterprise) only.
+function proOnly(feature: string) {
+	return {
+		error: 'tier_forbidden',
+		message: `${feature} is a Pro feature. Upgrade at /#pricing to unlock line history and movement.`
+	};
+}
+function isProPlus(tier: Tier): boolean {
+	return tier.id === 'pro' || tier.id === 'enterprise';
+}
+// Parse a lookback like "6h", "24h", "3d" into ms, clamped to [1h, 7d].
+function parseSinceMs(s: string | undefined): number {
+	const m = /^(\d+)\s*([hd])$/i.exec((s || '24h').trim());
+	const n = m ? parseInt(m[1]!, 10) : 24;
+	const ms = m && m[2]!.toLowerCase() === 'd' ? n * 86_400_000 : n * 3_600_000;
+	return Math.min(Math.max(ms, 3_600_000), 7 * 86_400_000);
+}
+
+// GET /props/history (Pro) --------------------------------------------------
+v1.openapi(
+	createRoute({
+		method: 'get',
+		path: '/props/history',
+		tags: ['Props'],
+		summary: 'Line history for a prop (Pro)',
+		description:
+			'Chronological line/odds history for a player prop, with opened/current/movement. Pro tier and above. History accrues from when archiving started, so early results may be short.',
+		security: [{ BearerAuth: [] }],
+		request: { query: HistoryQuery },
+		responses: {
+			200: jsonContent(PropHistorySchema, 'Prop line history'),
+			400: errBad,
+			401: errAuth,
+			403: errTier,
+			429: errRate
+		}
+	}),
+	(c) => {
+		const tier = c.get('tier');
+		if (!isProPlus(tier)) return c.json(proOnly('Line history'), 403);
+		const { player, sport, stat, event, limit } = c.req.valid('query');
+		return c.json(getPropHistory({ player, sport, stat, eventId: event, limit }), 200);
+	}
+);
+
+// GET /props/movement (Pro) -------------------------------------------------
+v1.openapi(
+	createRoute({
+		method: 'get',
+		path: '/props/movement',
+		tags: ['Props'],
+		summary: 'Biggest line movers (Pro)',
+		description:
+			'Props whose line moved most within a lookback window (default 24h, max 7d), sorted by absolute movement. Pro tier and above.',
+		security: [{ BearerAuth: [] }],
+		request: { query: MovementQuery },
+		responses: {
+			200: jsonContent(MovementResponseSchema, 'Line movers'),
+			400: errBad,
+			401: errAuth,
+			403: errTier,
+			429: errRate
+		}
+	}),
+	(c) => {
+		const tier = c.get('tier');
+		if (!isProPlus(tier)) return c.json(proOnly('Line movement'), 403);
+		const { sport, stat, since, limit } = c.req.valid('query');
+		return c.json(getMovement({ sport, stat, sinceMs: parseSinceMs(since), limit }), 200);
 	}
 );
 

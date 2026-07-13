@@ -6,6 +6,8 @@ import { env } from '../env.js';
 import { TIERS } from '../config/tiers.js';
 import { headlineSport, SPORT_CATALOG } from '../config/sports.js';
 import { cryptoEnabled, cryptoPerMonthUsdc, discountPct } from '../config/crypto.js';
+import { getUnderdogStatus, type UnderdogStatus } from '../data/underdog.js';
+import { snapshotCount } from '../data/snapshots.js';
 
 export const meta = new Hono();
 
@@ -229,6 +231,178 @@ function connectHtml(): string {
 }
 
 meta.get('/connect', (c) => c.html(connectHtml()));
+
+// --- Status + legal pages ---------------------------------------------------
+const LEGAL_UPDATED = 'July 12, 2026';
+
+// Shared dark-theme shell for the text/status pages (nav + footer).
+function docPage(title: string, inner: string): string {
+	return `<!doctype html><html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>${title} · Flash Props API</title>
+<style>
+  :root{--bg:#0b0d12;--panel:#12151d;--line:#232838;--ink:#eef1f7;--mut:#9aa3b6;--flash:#f58426;--flash2:#ff9d47;--green:#35d07f;--red:#ff5c6c}
+  *{box-sizing:border-box}body{margin:0;background:radial-gradient(1100px 520px at 72% -10%,rgba(245,132,38,.12),transparent 60%),var(--bg);color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif}
+  .wrap{max-width:820px;margin:0 auto;padding:26px 22px 60px}
+  nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;gap:12px;flex-wrap:wrap}
+  nav a.logo{color:var(--ink);text-decoration:none;font-weight:700;display:flex;align-items:center;gap:10px}
+  nav a.logo img{height:26px;width:26px;border-radius:7px}
+  nav .links a{color:var(--mut);text-decoration:none;margin-left:16px;font-size:14px}
+  nav .links a:hover{color:var(--flash2)}
+  h1{font-size:26px;margin:0 0 6px}h2{font-size:17px;margin:26px 0 8px}
+  .mut{color:var(--mut)}a{color:var(--flash2)}.small{font-size:13px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:16px 0}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--mut);font-weight:600}td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;border:1px solid var(--line)}
+  .ok{color:var(--green);border-color:#1c3a2a}.bad{color:var(--red);border-color:#3a1c22}
+  .legal p,.legal li{color:#c6cddd}.legal ul{padding-left:20px}.legal li{margin:5px 0}
+  footer{border-top:1px solid var(--line);margin-top:34px;padding-top:18px;color:var(--mut);font-size:13px}
+</style></head><body><div class="wrap">
+<nav><a class="logo" href="/"><img src="${BRAND_LOGO}" alt=""/> Flash Props API</a>
+  <div class="links"><a href="/">Home</a><a href="/docs">Docs</a><a href="/status">Status</a></div></nav>
+${inner}
+<footer>© Flash AI Solutions · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/aup">Acceptable Use</a> · <a href="mailto:malone.jaylon@gmail.com?subject=Flash%20Props%20API">Support</a></footer>
+</div></body></html>`;
+}
+
+function statusHtml(s: UnderdogStatus): string {
+	const nameOf = (id: string) => SPORT_CATALOG.find((x) => x.id === id)?.name ?? id;
+	const overallPill =
+		s.ok && s.totalProps > 0
+			? '<span class="pill ok">● Operational</span>'
+			: s.ok
+				? '<span class="pill">● Reachable · no active lines</span>'
+				: '<span class="pill bad">● Degraded</span>';
+	const fresh = s.ageSeconds == null ? '—' : s.ageSeconds < 90 ? `${s.ageSeconds}s ago` : `${Math.round(s.ageSeconds / 60)} min ago`;
+	const rows = s.sports.length
+		? s.sports
+				.map(
+					(r) =>
+						`<tr><td>${nameOf(r.sport)} <span class="mut small">${r.sport}</span></td><td class="num">${r.games}</td><td class="num">${r.props}</td></tr>`
+				)
+				.join('')
+		: '<tr><td colspan="3" class="mut">No active lines posted right now (common between slates or off-season). Check back near game time.</td></tr>';
+	const err = s.error ? `<p class="bad small" style="margin:8px 0 0">Upstream error: ${String(s.error).replace(/[<>&]/g, '')}</p>` : '';
+	const inner =
+		'<h1>Service status</h1>' +
+		'<p class="mut">Live coverage and data freshness. The API serves <b>pre-game</b> player props; lines refresh about every 5 minutes. Coverage varies by sport, season, and upstream availability.</p>' +
+		`<div class="card"><div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between"><div>${overallPill}</div>` +
+		`<div class="mut small">Last upstream fetch: <b style="color:var(--ink)">${fresh}</b> · ${s.totalGames} games · ${s.totalProps} props</div></div></div>` +
+		'<h2>Coverage by sport</h2>' +
+		`<div class="card" style="padding:8px 12px"><table><thead><tr><th>Sport</th><th class="num">Games</th><th class="num">Props</th></tr></thead><tbody>${rows}</tbody></table></div>` +
+		'<h2>Sources</h2>' +
+		`<div class="card"><p style="margin:0"><span class="pill ${s.ok ? 'ok' : 'bad'}">${s.ok ? 'operational' : 'degraded'}</span> &nbsp;<b>Underdog</b> — primary pre-game source across every listed sport.</p>` +
+		`<p class="mut small" style="margin:8px 0 0">Live in-game lines (a secondary source) are not currently available; all lines are pre-game.</p>${err}</div>` +
+		`<p class="mut small">Line-movement archive: <b style="color:var(--ink)">${snapshotCount().toLocaleString()}</b> snapshots recorded (powers Pro history/movement).</p>` +
+		'<p class="mut small">Machine-readable: <a href="/status.json">/status.json</a> · Infrastructure liveness: <a href="/health">/health</a></p>';
+	return docPage('Status', inner);
+}
+
+meta.get('/status', async (c) => c.html(statusHtml(await getUnderdogStatus())));
+meta.get('/status.json', async (c) => {
+	const s = await getUnderdogStatus();
+	const nameOf = (id: string) => SPORT_CATALOG.find((x) => x.id === id)?.name ?? id;
+	return c.json({
+		service: 'flash-props-api',
+		status: s.ok ? (s.totalProps > 0 ? 'operational' : 'reachable_no_lines') : 'degraded',
+		dataKind: 'pre-game',
+		fetchedAt: s.fetchedAt,
+		ageSeconds: s.ageSeconds,
+		totalGames: s.totalGames,
+		totalProps: s.totalProps,
+		archivedLines: snapshotCount(),
+		sports: s.sports.map((r) => ({ ...r, name: nameOf(r.sport) })),
+		sources: [{ id: 'underdog', label: 'Underdog', kind: 'pre-game', ok: s.ok }],
+		error: s.error ?? null
+	});
+});
+
+meta.get('/terms', (c) =>
+	c.html(
+		docPage(
+			'Terms of Service',
+			`<div class="legal"><h1>Terms of Service</h1><p class="mut small">Last updated ${LEGAL_UPDATED}</p>
+      <p>These Terms govern your use of the Flash Props API (the "Service"), operated by Flash AI Solutions. By creating an API key or calling the Service you agree to these Terms. If you do not agree, do not use the Service.</p>
+      <h2>1. What the Service is</h2>
+      <p>The Service is a developer API that returns sports player-prop data (over/under lines and odds) for informational purposes. Flash Props is an independent product. It is <b>not</b> a sportsbook, does <b>not</b> accept wagers, does not facilitate gambling, and does not guarantee any outcome or profit. It is not affiliated with, sponsored by, or endorsed by any league, team, sportsbook, or daily-fantasy operator.</p>
+      <h2>2. Your key and account</h2>
+      <p>Keep your API key secret. You are responsible for all activity under your key. We may rate-limit, suspend, or revoke keys that violate these Terms or our <a href="/aup">Acceptable Use Policy</a>.</p>
+      <h2>3. Data and accuracy</h2>
+      <p>Data is aggregated from third-party sources and provided "as is." It may be delayed, incomplete, or inaccurate. Do not rely on it for financial, betting, or other decisions. See live coverage at <a href="/status">/status</a>.</p>
+      <h2>4. Payment and cancellation</h2>
+      <p>Paid tiers are billed monthly through Stripe, or prepaid with USDC. You can cancel a card subscription at any time from the <a href="/billing/portal">billing portal</a>; access continues until the end of the paid period. Prepaid crypto access runs for the period purchased and does not auto-renew. Except where required by law, payments are non-refundable.</p>
+      <h2>5. Termination</h2>
+      <p>You may stop using the Service at any time. We may suspend or terminate access for breach of these Terms, abuse, or non-payment.</p>
+      <h2>6. Disclaimer and liability</h2>
+      <p>The Service is provided "as is" without warranties of any kind. To the maximum extent permitted by law, Flash AI Solutions is not liable for any indirect, incidental, or consequential damages, or for any losses (including gambling losses) arising from use of the Service.</p>
+      <h2>7. Changes</h2>
+      <p>We may update these Terms; continued use after an update constitutes acceptance. Material changes will be reflected by the "last updated" date above.</p>
+      <h2>8. Governing law</h2>
+      <p>These Terms are governed by the laws of the State of Alabama, USA, without regard to conflict-of-law rules.</p>
+      <h2>9. Contact</h2>
+      <p>Questions: <a href="mailto:malone.jaylon@gmail.com?subject=Flash%20Props%20API%20Terms">malone.jaylon@gmail.com</a>.</p></div>`
+		)
+	)
+);
+
+meta.get('/privacy', (c) =>
+	c.html(
+		docPage(
+			'Privacy Policy',
+			`<div class="legal"><h1>Privacy Policy</h1><p class="mut small">Last updated ${LEGAL_UPDATED}</p>
+      <p>This policy explains what the Flash Props API collects and why. We aim to collect as little as possible.</p>
+      <h2>What we collect</h2>
+      <ul>
+        <li><b>Email</b> — when you create a key or check out, so we can deliver your key and send critical service notices.</li>
+        <li><b>A hash of your API key</b> — we store only a one-way HMAC hash, never the key itself.</li>
+        <li><b>Usage metadata</b> — per-key request counts and timestamps, used for quotas and abuse prevention.</li>
+        <li><b>IP address</b> — used transiently for rate limiting; we do not build a profile from it.</li>
+        <li><b>Billing identifiers</b> — a Stripe customer id for paid accounts. Card details are handled entirely by Stripe; we never see or store them.</li>
+      </ul>
+      <h2>How we use it</h2>
+      <p>To operate and secure the Service, deliver keys, enforce quotas, prevent abuse, and process payments. We do <b>not</b> sell your data or use it for advertising.</p>
+      <h2>Processors</h2>
+      <p>We rely on Stripe (payments) and our hosting provider (Hetzner) to run the Service. They process data only to provide their function.</p>
+      <h2>Retention</h2>
+      <p>Key and usage records are kept while your account is active. Email us to request deletion of your email and account records.</p>
+      <h2>Your choices</h2>
+      <p>You can request access to, or deletion of, your data by emailing us. The API sets no tracking cookies.</p>
+      <h2>Contact</h2>
+      <p><a href="mailto:malone.jaylon@gmail.com?subject=Flash%20Props%20API%20Privacy">malone.jaylon@gmail.com</a>.</p></div>`
+		)
+	)
+);
+
+meta.get('/aup', (c) =>
+	c.html(
+		docPage(
+			'Acceptable Use Policy',
+			`<div class="legal"><h1>Acceptable Use Policy</h1><p class="mut small">Last updated ${LEGAL_UPDATED}</p>
+      <p>This policy sets the ground rules for using the Flash Props API. It supplements the <a href="/terms">Terms of Service</a>.</p>
+      <h2>You may</h2>
+      <ul>
+        <li>Build applications, bots, dashboards, spreadsheets, agents, alerts, and internal tools on top of the API responses.</li>
+        <li>Cache responses reasonably within your own product.</li>
+      </ul>
+      <h2>You may not</h2>
+      <ul>
+        <li>Resell, redistribute, or republish the raw data feed as a standalone or competing dataset.</li>
+        <li>Scrape or mirror the API in bulk to reconstruct or replace it.</li>
+        <li>Exceed your tier's rate limits or create keys to evade quotas or caps.</li>
+        <li>Use the Service for any unlawful purpose, to facilitate illegal gambling, or to target anyone under 21.</li>
+        <li>Attempt to breach security, disrupt the Service, or access data that is not yours.</li>
+      </ul>
+      <h2>Data rights</h2>
+      <p>We grant you a limited, revocable license to use API responses within your own product. This is not a grant of ownership of the underlying data, and does not include redistribution rights. Upstream data providers may have their own terms; use responsibly.</p>
+      <h2>Enforcement</h2>
+      <p>We may rate-limit, suspend, or terminate access for violations, with or without notice depending on severity.</p>
+      <h2>Contact</h2>
+      <p>Questions or to report abuse: <a href="mailto:malone.jaylon@gmail.com?subject=Flash%20Props%20API%20AUP">malone.jaylon@gmail.com</a>.</p></div>`
+		)
+	)
+);
 
 // --- Public landing page ("storefront") ------------------------------------
 function tierCard(id: keyof typeof TIERS): string {
@@ -564,7 +738,7 @@ curl -H <span class="s">"Authorization: Bearer $KEY"</span> \\
 
 <footer>
   <div>© Flash AI Solutions · Flash Props API</div>
-  <div><a href="/docs">Docs</a> · <a href="/connect">Connect</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/skill.md">Agents</a> · <a href="/health">Status</a> · <a href="mailto:malone.jaylon@gmail.com?subject=Flash%20Props%20API%20Support">Support</a></div>
+  <div><a href="/docs">Docs</a> · <a href="/connect">Connect</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/skill.md">Agents</a> · <a href="/status">Status</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/aup">Acceptable Use</a> · <a href="mailto:malone.jaylon@gmail.com?subject=Flash%20Props%20API%20Support">Support</a></div>
 </footer>
 
 <script>
