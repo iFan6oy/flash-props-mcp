@@ -39,8 +39,8 @@ function keyEmailBody(o: KeyEmailOpts): { html: string; text: string } {
 		'Quick start:',
 		curl,
 		'',
-		`Docs:   ${base}/docs`,
-		`Status: ${base}/status`,
+		`Docs:      ${base}/docs`,
+		`Dashboard: ${base}/dashboard`,
 		manage,
 		'',
 		'Flash Props API. Informational use only. Not affiliated with any league, team, or sportsbook. 21+.'
@@ -61,7 +61,7 @@ function keyEmailBody(o: KeyEmailOpts): { html: string; text: string } {
 		.replace(/</g, '&lt;')}</pre>
   <p style="margin:16px 0 0">
     <a href="${base}/docs" style="color:#f58426">Docs</a> &middot;
-    <a href="${base}/status" style="color:#f58426">Status</a> &middot;
+    <a href="${base}/dashboard" style="color:#f58426">Dashboard</a> &middot;
     ${manageLink}
   </p>
   <p style="color:#8a93a6;font-size:12px;margin:18px 0 0">Flash Props API. Informational use only. Not affiliated with any league, team, or sportsbook. 21+.</p>
@@ -91,6 +91,34 @@ export async function sendKeyEmail(o: KeyEmailOpts): Promise<boolean> {
 		return true;
 	} catch (e) {
 		console.warn('[email] send threw:', e instanceof Error ? e.message : String(e));
+		return false;
+	}
+}
+
+// Emails a sign-in magic link for the customer dashboard. Same graceful
+// degradation as sendKeyEmail (no-op without RESEND_API_KEY, never throws).
+export async function sendMagicLink(to: string, link: string): Promise<boolean> {
+	const r = client();
+	if (!r || !to || !link) return false;
+	try {
+		const base = env.PUBLIC_BASE_URL;
+		const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,system-ui,sans-serif;max-width:520px;margin:0 auto;color:#11151d">
+  <h2 style="margin:0 0 6px">Sign in to Flash Props</h2>
+  <p style="margin:0 0 16px">Click below to open your dashboard. This link expires in 30 minutes.</p>
+  <p style="margin:0 0 18px"><a href="${link}" style="display:inline-block;background:#f58426;color:#1a1206;font-weight:700;text-decoration:none;padding:11px 18px;border-radius:10px">Open my dashboard</a></p>
+  <p style="color:#5b667a;font-size:13px;margin:0;word-break:break-all">Or paste this link: ${link}</p>
+  <p style="color:#8a93a6;font-size:12px;margin:18px 0 0">Didn't request this? You can ignore this email. Flash Props API · ${base}</p>
+</div>`;
+		const text = `Sign in to Flash Props\n\nOpen your dashboard (expires in 30 min):\n${link}\n\nDidn't request this? Ignore this email.`;
+		const res = await r.emails.send({ from: env.RESEND_FROM, to, subject: 'Sign in to Flash Props', html, text });
+		if (res.error) {
+			console.warn('[email] magic-link failed:', res.error.message);
+			return false;
+		}
+		console.log(`[email] magic link sent to ${to}`);
+		return true;
+	} catch (e) {
+		console.warn('[email] magic-link threw:', e instanceof Error ? e.message : String(e));
 		return false;
 	}
 }

@@ -13,6 +13,7 @@ import { meta } from './routes/meta.js';
 import { mcpApp } from './mcp/http.js';
 import { billing } from './billing/routes.js';
 import { admin } from './admin/routes.js';
+import { dashboard } from './routes/dashboard.js';
 
 ensureSchema();
 seedLineSnapshots();
@@ -43,6 +44,9 @@ app.route('/billing', billing);
 
 // Admin dashboard + gated API (revoke/issue keys, view sales)
 app.route('/admin', admin);
+
+// Customer self-serve dashboard (magic-link by email: usage, rotate, revoke, billing)
+app.route('/dashboard', dashboard);
 
 // Security scheme for the generated spec
 app.openAPIRegistry.registerComponent('securitySchemes', 'BearerAuth', {

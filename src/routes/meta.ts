@@ -738,7 +738,7 @@ curl -H <span class="s">"Authorization: Bearer $KEY"</span> \\
 
 <footer>
   <div>© Flash AI Solutions · Flash Props API</div>
-  <div><a href="/docs">Docs</a> · <a href="/connect">Connect</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/skill.md">Agents</a> · <a href="/status">Status</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/aup">Acceptable Use</a> · <a href="mailto:malone.jaylon@gmail.com?subject=Flash%20Props%20API%20Support">Support</a></div>
+  <div><a href="/docs">Docs</a> · <a href="/dashboard">Dashboard</a> · <a href="/connect">Connect</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/skill.md">Agents</a> · <a href="/status">Status</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/aup">Acceptable Use</a> · <a href="mailto:malone.jaylon@gmail.com?subject=Flash%20Props%20API%20Support">Support</a></div>
 </footer>
 
 <script>
