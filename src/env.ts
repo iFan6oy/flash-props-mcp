@@ -36,6 +36,11 @@ const EnvSchema = z.object({
 	USDC_BASE: z.string().default('0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'),
 	// Sale notifications — POSTed to this URL (Discord-compatible) on each paid key.
 	NOTIFY_WEBHOOK: z.string().default(''),
+	// Email delivery (Resend). API keys are emailed to the buyer on creation when
+	// RESEND_API_KEY is set; otherwise email delivery no-ops (page reveal only).
+	// RESEND_FROM must be a verified sender on the Resend account.
+	RESEND_API_KEY: z.string().default(''),
+	RESEND_FROM: z.string().default('Flash Props <onboarding@resend.dev>'),
 	// Admin dashboard/API token. Admin is disabled (503) until set. Use a strong value.
 	ADMIN_TOKEN: z.string().default('')
 });
@@ -57,6 +62,8 @@ if (isProd) {
 	}
 	// Stripe: warn on partial config (silently-broken checkout is worse than off).
 	if (env.STRIPE_SECRET_KEY && !env.STRIPE_WEBHOOK_SECRET) {
-		console.warn('[warn] STRIPE_SECRET_KEY set but STRIPE_WEBHOOK_SECRET missing — subscription lifecycle webhooks will 503.');
+		console.warn(
+			'[warn] STRIPE_SECRET_KEY set but STRIPE_WEBHOOK_SECRET missing — subscription lifecycle webhooks will 503.'
+		);
 	}
 }

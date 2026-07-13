@@ -9,6 +9,7 @@ import { createApiKey } from '../auth/keys.js';
 import { getStripe } from './stripe.js';
 import { provisionForCustomer, revokeForCustomer, setTierForCustomer, customerIdForKey } from './provision.js';
 import { stashReveal, takeReveal } from './reveal.js';
+import { sendKeyEmail } from '../email.js';
 import {
 	cryptoEnabled,
 	enabledChains,
@@ -144,7 +145,10 @@ billing.post('/free', async (c) => {
 	const used = seen && seen.day === day ? seen.count : 0;
 	if (used >= FREE_KEYS_PER_IP_PER_DAY) {
 		return c.html(
-			freeKeyForm('', `You've created the maximum free keys for today (${FREE_KEYS_PER_IP_PER_DAY}). Reuse an existing key, or email support if you need more.`),
+			freeKeyForm(
+				'',
+				`You've created the maximum free keys for today (${FREE_KEYS_PER_IP_PER_DAY}). Reuse an existing key, or email support if you need more.`
+			),
 			429
 		);
 	}
@@ -157,6 +161,7 @@ billing.post('/free', async (c) => {
 		email,
 		source: String(form.src || '').slice(0, 60) || null
 	});
+	void sendKeyEmail({ to: email, key, tier: 'free', paid: false }); // no-op unless RESEND_API_KEY set
 	return c.html(keyPage({ tier: 'free', key, prefix: record.keyPrefix, created: true }));
 });
 
@@ -206,13 +211,27 @@ billing.get('/success', async (c) => {
 	const email = session.customer_details?.email ?? null;
 	const result = provisionForCustomer(customerId, tier, email);
 	if (result.created) {
-		notifySale({ channel: 'stripe', tier, amount: TIERS[tier].priceMonthly ?? 0, currency: 'USD', period: '1 mo' });
+		notifySale({
+			channel: 'stripe',
+			tier,
+			amount: TIERS[tier].priceMonthly ?? 0,
+			currency: 'USD',
+			period: '1 mo'
+		});
+		if (result.key) void sendKeyEmail({ to: email ?? '', key: result.key, tier, paid: true });
 	}
 	// Reveal the plaintext once. If the webhook already provisioned (created:false)
 	// it will have stashed the fresh key for a one-time reveal here — so the buyer
 	// still gets their key on this page even when the webhook won the race.
 	const shownKey = result.key ?? takeReveal(customerId) ?? undefined;
-	return c.html(keyPage({ tier, key: shownKey, prefix: result.prefix, created: !!shownKey }));
+	return c.html(
+		keyPage({
+			tier,
+			key: shownKey,
+			prefix: result.prefix,
+			created: !!shownKey
+		})
+	);
 });
 
 // --- Stripe webhook: subscription lifecycle --------------------------------
@@ -245,7 +264,19 @@ billing.post('/webhook', async (c) => {
 				const result = provisionForCustomer(customerId, tier, email);
 				if (result.created && result.key) {
 					stashReveal(customerId, result.key); // let /success reveal it once
-					notifySale({ channel: 'stripe', tier, amount: TIERS[tier].priceMonthly ?? 0, currency: 'USD', period: '1 mo' });
+					void sendKeyEmail({
+						to: email ?? '',
+						key: result.key,
+						tier,
+						paid: true
+					});
+					notifySale({
+						channel: 'stripe',
+						tier,
+						amount: TIERS[tier].priceMonthly ?? 0,
+						currency: 'USD',
+						period: '1 mo'
+					});
 				}
 			}
 			break;
@@ -304,22 +335,38 @@ billing.post('/portal', async (c) => {
 	const customerId = customerIdForKey(rawKey);
 	if (!customerId) {
 		return c.json(
-			{ error: 'no_subscription', message: 'That key is not linked to a card subscription. Free and crypto keys have no billing portal.' },
+			{
+				error: 'no_subscription',
+				message: 'That key is not linked to a card subscription. Free and crypto keys have no billing portal.'
+			},
 			404
 		);
 	}
 	try {
-		const portal = await stripe.billingPortal.sessions.create({ customer: customerId, return_url: `${BASE}/` });
+		const portal = await stripe.billingPortal.sessions.create({
+			customer: customerId,
+			return_url: `${BASE}/`
+		});
 		return c.json({ url: portal.url });
 	} catch {
-		return c.json({ error: 'portal_failed', message: 'Could not open the billing portal. Please contact support.' }, 502);
+		return c.json(
+			{
+				error: 'portal_failed',
+				message: 'Could not open the billing portal. Please contact support.'
+			},
+			502
+		);
 	}
 });
 
 // --- Crypto checkout (Solana Pay / USDC) -----------------------------------
 async function cryptoPayPage(order: CryptoOrder): Promise<string> {
 	const tgt = payTarget(order);
-	const qr = await QRCode.toString(tgt.url, { type: 'svg', margin: 1, width: 220 });
+	const qr = await QRCode.toString(tgt.url, {
+		type: 'svg',
+		margin: 1,
+		width: 220
+	});
 	const t = TIERS[order.tier as TierId];
 	const periodId = order.months >= 12 ? 'year' : 'month';
 	const chainName = CHAIN_LABEL[tgt.chain];
