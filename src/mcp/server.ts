@@ -41,7 +41,9 @@ export function buildMcpServer(tier: Tier): McpServer {
 			title: "List today's games",
 			description:
 				"List today's games with player props for a sport (nba, mlb, nfl, nhl, ncaab, ncaaf, soccer). Live games first.",
-			inputSchema: { sport: z.string().optional().describe('Sport id, e.g. nba or mlb. Defaults to the in-season sport.') }
+			inputSchema: {
+				sport: z.string().optional().describe('Sport id, e.g. nba or mlb. Defaults to the in-season sport.')
+			}
 		},
 		async ({ sport }) => {
 			const s = resolveSport(sport);
@@ -65,7 +67,12 @@ export function buildMcpServer(tier: Tier): McpServer {
 		async ({ eventId, sport, stats }) => {
 			const s = resolveSport(sport);
 			if (!sportAllowed(tier, s)) return denySport(s, tier);
-			const statList = stats ? stats.split(',').map((x) => x.trim()).filter(Boolean) : undefined;
+			const statList = stats
+				? stats
+						.split(',')
+						.map((x) => x.trim())
+						.filter(Boolean)
+				: undefined;
 			const r = await getProps(eventId, statList, s);
 			if (!r) return fail(`No props available for event ${eventId}. It may have ended or not posted lines yet.`);
 			return ok(gateProps(tier, r));
@@ -97,11 +104,16 @@ export function buildMcpServer(tier: Tier): McpServer {
 		'find_game',
 		{
 			title: 'Find a game by teams',
-			description: 'Resolve a matchup to an event id by home and away team names.',
+			description:
+				'Resolve a matchup description (home and away team names) to an event id you can pass to get_game_props. ' +
+				'Use this when you know the teams but not the event id. ' +
+				"Returns { eventId } on success, or an error if no matching game is found for today's slate. " +
+				'Team names are matched case-insensitively and support partial names (e.g. "Yankees", "New York Yankees", "NYY" all work for MLB). ' +
+				"If no game is found, the matchup may not be on today's board or the sport may be out of season.",
 			inputSchema: {
-				home: z.string().describe('Home team name'),
-				away: z.string().describe('Away team name'),
-				sport: z.string().optional().describe('Sport id. Defaults to the in-season sport.')
+				home: z.string().describe('Home team name or abbreviation, e.g. "Yankees", "LAL", "Kansas City Chiefs"'),
+				away: z.string().describe('Away team name or abbreviation, e.g. "Red Sox", "GSW", "Buffalo Bills"'),
+				sport: z.string().optional().describe('Sport id, e.g. mlb, nba, nfl. Defaults to the in-season sport.')
 			}
 		},
 		async ({ home, away, sport }) => {
