@@ -6,6 +6,8 @@ import { logger } from 'hono/logger';
 import type { AppEnv } from './app-env.js';
 import { env } from './env.js';
 import { ensureSchema } from './db/client.js';
+import { seedLineSnapshots, snapshotsEnabled } from './data/snapshots.js';
+import { getUnderdogSnapshot } from './data/underdog.js';
 import { v1 } from './routes/v1.js';
 import { meta } from './routes/meta.js';
 import { mcpApp } from './mcp/http.js';
@@ -13,6 +15,15 @@ import { billing } from './billing/routes.js';
 import { admin } from './admin/routes.js';
 
 ensureSchema();
+seedLineSnapshots();
+
+// Keep the line-movement archive accruing even with zero traffic: warm the board
+// once, then refresh on a fixed cadence. Each fresh fetch archives changed lines
+// (a no-op when nothing moved). Best-effort — failures never affect serving.
+if (snapshotsEnabled()) {
+	void getUnderdogSnapshot().catch(() => {});
+	setInterval(() => void getUnderdogSnapshot().catch(() => {}), env.SNAPSHOT_POLL_MS);
+}
 
 const app = new OpenAPIHono<AppEnv>();
 

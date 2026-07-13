@@ -16,6 +16,11 @@ const EnvSchema = z.object({
 	API_KEY_SECRET: z.string().min(1).default('dev-only-change-me-in-prod'),
 	// Artificial staleness applied to free-tier responses (ms). 0 = realtime.
 	FREE_TIER_DELAY_MS: z.coerce.number().int().nonnegative().default(300_000),
+	// Line movement archive: append a snapshot row whenever a prop's line/odds
+	// change, and run a background poller so the archive accrues without traffic.
+	// Set to '0' to disable both the writes and the poller.
+	LINE_SNAPSHOTS: z.string().default('1'),
+	SNAPSHOT_POLL_MS: z.coerce.number().int().positive().default(300_000), // 5 min
 	// Stripe card checkout (plan prices live in config/tiers.ts, not here).
 	STRIPE_SECRET_KEY: z.string().default(''),
 	STRIPE_WEBHOOK_SECRET: z.string().default(''),

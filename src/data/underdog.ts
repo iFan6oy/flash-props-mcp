@@ -15,6 +15,7 @@
 
 import { BROWSER_UA, normName, toAmerican } from './types.js';
 import type { GameRef, PlayerProp, PropsResult } from './types.js';
+import { recordSnapshot, type SnapshotInput } from './snapshots.js';
 
 const UNDERDOG_URL = 'https://api.underdogfantasy.com/beta/v5/over_under_lines';
 const SNAPSHOT_TTL_MS = 5 * 60 * 1000; // 5 min — props update frequently
@@ -218,7 +219,33 @@ export async function getUnderdogSnapshot(): Promise<Snapshot> {
 		}
 	}
 
-	cache = { bySport, fetchedAt: Date.now() };
+	const fetchedAt = Date.now();
+	cache = { bySport, fetchedAt };
+
+	// Archive line movement (change-based; best-effort, never breaks the fetch).
+	try {
+		const flat: SnapshotInput[] = [];
+		for (const [sport, gameMap] of bySport) {
+			for (const b of gameMap.values()) {
+				for (const p of b.props) {
+					flat.push({
+						sport,
+						eventId: `ud-${b.gameId}`,
+						player: p.player,
+						playerId: p.playerId,
+						stat: p.stat,
+						line: p.line,
+						overOdds: p.overOdds,
+						underOdds: p.underOdds,
+						startTime: b.startTime
+					});
+				}
+			}
+		}
+		recordSnapshot(fetchedAt, 'underdog', flat);
+	} catch {
+		/* archiving is best-effort */
+	}
 	return cache;
 }
 

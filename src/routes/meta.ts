@@ -7,6 +7,7 @@ import { TIERS } from '../config/tiers.js';
 import { headlineSport, SPORT_CATALOG } from '../config/sports.js';
 import { cryptoEnabled, cryptoPerMonthUsdc, discountPct } from '../config/crypto.js';
 import { getUnderdogStatus, type UnderdogStatus } from '../data/underdog.js';
+import { snapshotCount } from '../data/snapshots.js';
 
 export const meta = new Hono();
 
@@ -294,6 +295,7 @@ function statusHtml(s: UnderdogStatus): string {
 		'<h2>Sources</h2>' +
 		`<div class="card"><p style="margin:0"><span class="pill ${s.ok ? 'ok' : 'bad'}">${s.ok ? 'operational' : 'degraded'}</span> &nbsp;<b>Underdog</b> — primary pre-game source across every listed sport.</p>` +
 		`<p class="mut small" style="margin:8px 0 0">Live in-game lines (a secondary source) are not currently available; all lines are pre-game.</p>${err}</div>` +
+		`<p class="mut small">Line-movement archive: <b style="color:var(--ink)">${snapshotCount().toLocaleString()}</b> snapshots recorded (powers Pro history/movement).</p>` +
 		'<p class="mut small">Machine-readable: <a href="/status.json">/status.json</a> · Infrastructure liveness: <a href="/health">/health</a></p>';
 	return docPage('Status', inner);
 }
@@ -310,6 +312,7 @@ meta.get('/status.json', async (c) => {
 		ageSeconds: s.ageSeconds,
 		totalGames: s.totalGames,
 		totalProps: s.totalProps,
+		archivedLines: snapshotCount(),
 		sports: s.sports.map((r) => ({ ...r, name: nameOf(r.sport) })),
 		sources: [{ id: 'underdog', label: 'Underdog', kind: 'pre-game', ok: s.ok }],
 		error: s.error ?? null

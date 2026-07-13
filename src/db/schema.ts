@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey, index } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, primaryKey, index } from 'drizzle-orm/sqlite-core';
 
 // API keys. We store only the HMAC-SHA256 hash of the key, never the key
 // itself — the plaintext is shown to the user exactly once, at creation.
@@ -47,5 +47,33 @@ export const usageDaily = sqliteTable(
 	(t) => [primaryKey({ columns: [t.keyId, t.day] })]
 );
 
+// Line movement archive. Change-based: we only append a row when a prop's line
+// or odds differ from what we last saw, so the table stays a compact movement
+// log (open + each move) rather than a full re-snapshot every cycle.
+export const lineSnapshots = sqliteTable(
+	'line_snapshots',
+	{
+		id: integer('id').primaryKey({ autoIncrement: true }),
+		capturedAt: integer('captured_at').notNull(), // epoch ms
+		source: text('source').notNull(), // 'underdog'
+		sport: text('sport').notNull(),
+		eventId: text('event_id').notNull(), // ud-<gameId>
+		player: text('player').notNull(),
+		playerId: text('player_id'),
+		team: text('team'), // null for Underdog (no per-player team on the feed)
+		stat: text('stat').notNull(),
+		line: real('line').notNull(),
+		overOdds: integer('over_odds'),
+		underOdds: integer('under_odds'),
+		startTime: text('start_time'), // game start ISO
+		status: text('status') // reserved (active/suspended); Underdog is active-only today
+	},
+	(t) => [
+		index('line_snapshots_lookup').on(t.sport, t.player, t.stat, t.capturedAt),
+		index('line_snapshots_event').on(t.eventId, t.capturedAt)
+	]
+);
+
 export type ApiKeyRow = typeof apiKeys.$inferSelect;
 export type UsageDailyRow = typeof usageDaily.$inferSelect;
+export type LineSnapshotRow = typeof lineSnapshots.$inferSelect;

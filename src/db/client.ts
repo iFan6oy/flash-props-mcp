@@ -51,6 +51,24 @@ export function ensureSchema(): void {
 			expires_at INTEGER NOT NULL,
 			paid_at INTEGER
 		);
+		CREATE TABLE IF NOT EXISTS line_snapshots (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			captured_at INTEGER NOT NULL,
+			source TEXT NOT NULL,
+			sport TEXT NOT NULL,
+			event_id TEXT NOT NULL,
+			player TEXT NOT NULL,
+			player_id TEXT,
+			team TEXT,
+			stat TEXT NOT NULL,
+			line REAL NOT NULL,
+			over_odds INTEGER,
+			under_odds INTEGER,
+			start_time TEXT,
+			status TEXT
+		);
+		CREATE INDEX IF NOT EXISTS line_snapshots_lookup ON line_snapshots(sport, player, stat, captured_at);
+		CREATE INDEX IF NOT EXISTS line_snapshots_event ON line_snapshots(event_id, captured_at);
 	`);
 	// Additive migrations for existing databases (idempotent — ignore "duplicate column").
 	for (const stmt of [
