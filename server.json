@@ -1,0 +1,33 @@
+{
+	"$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+	"name": "io.github.iFan6oy/flash-props-api",
+	"description": "Player-prop lines, market metadata, and line movement over REST/MCP. 14 sports, CoD projections.",
+	"repository": {
+		"url": "https://github.com/iFan6oy/flash-props-mcp",
+		"source": "github"
+	},
+	"version": "1.3.0",
+	"websiteUrl": "https://api.flashodds.live",
+	"remotes": [
+		{
+			"type": "streamable-http",
+			"url": "https://api.flashodds.live/mcp",
+			"headers": [
+				{
+					"name": "Authorization",
+					"description": "Your Flash Props API key, as a Bearer token.",
+					"isRequired": true,
+					"isSecret": true,
+					"value": "Bearer {api_key}"
+				}
+			],
+			"variables": {
+				"api_key": {
+					"description": "Your Flash Props API key. Get a free one at https://api.flashodds.live/.",
+					"isRequired": true,
+					"isSecret": true
+				}
+			}
+		}
+	]
+}
