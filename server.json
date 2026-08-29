@@ -1,12 +1,12 @@
 {
 	"$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
 	"name": "io.github.iFan6oy/flash-props-api",
-	"description": "Player-prop lines, market metadata, and line movement over REST/MCP. 14 sports, CoD projections.",
+	"description": "Player-prop analysis, Flash projections, evidence, market metadata, and line movement over REST/MCP.",
 	"repository": {
 		"url": "https://github.com/iFan6oy/flash-props-mcp",
 		"source": "github"
 	},
-	"version": "1.3.0",
+	"version": "1.4.0",
 	"websiteUrl": "https://api.flashodds.live",
 	"remotes": [
 		{
