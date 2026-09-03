@@ -1,5 +1,9 @@
 # Flash Props MCP
 
+<a href="https://glama.ai/mcp/servers/iFan6oy/flash-props-mcp">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/iFan6oy/flash-props-mcp/badge" alt="Flash Props MCP server" />
+</a>
+
 Agent-native **player-prop analysis** over the [Model Context Protocol](https://modelcontextprotocol.io). Flash Props combines posted lines with self-describing market metadata, Flash projections where a registered model exists, recent-form evidence, confidence, context, and line movement across 14 sports including esports.
 
 This repo is the **connector** for the hosted Flash Props MCP server operated by Flash AI Solutions. There is no server to install. Point your MCP client at the remote endpoint and authenticate with a Flash Props API key.
