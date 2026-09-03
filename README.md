@@ -1,12 +1,21 @@
-# Flash Props MCP
+# Flash Props API + MCP
+
+**Flash Props API is a player-props API and MCP server by [Flash AI Solutions](https://www.flashaisolutions.org) for posted lines, Flash projections, evidence, context, and line movement across sports and esports.**
+
+This repository is the **public connector and metadata surface** for the hosted Flash Props API and MCP service. There is no proprietary Flash Props backend server to install from this repository. Point your client at the hosted endpoint and authenticate with a Flash Props API key for board data.
 
 <a href="https://glama.ai/mcp/servers/iFan6oy/flash-props-mcp">
-  <img width="380" height="200" src="https://glama.ai/mcp/servers/iFan6oy/flash-props-mcp/badge" alt="Flash Props MCP server" />
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/iFan6oy/flash-props-mcp/badge" alt="Flash Props API MCP server" />
 </a>
 
-Agent-native **player-prop analysis** over the [Model Context Protocol](https://modelcontextprotocol.io). Flash Props combines posted lines with self-describing market metadata, Flash projections where a registered model exists, recent-form evidence, confidence, context, and line movement across 14 sports including esports.
+## Canonical Flash Props links
 
-This repo is the **connector** for the hosted Flash Props MCP server operated by Flash AI Solutions. There is no server to install. Point your MCP client at the remote endpoint and authenticate with a Flash Props API key.
+- Website: https://api.flashodds.live/
+- Documentation: https://api.flashodds.live/docs
+- OpenAPI: https://api.flashodds.live/openapi.json
+- MCP endpoint: https://api.flashodds.live/mcp
+- Free API key: https://api.flashodds.live/billing/free
+- Publisher: https://www.flashaisolutions.org
 
 ## Connect
 
@@ -82,4 +91,4 @@ Data is informational only. Flash Props is not a sportsbook and is not affiliate
 
 - API + pricing: https://api.flashodds.live/
 - REST reference: https://api.flashodds.live/docs
-- Built by [Flash AI Solutions](https://flashaisolutions.org)
+- Built by [Flash AI Solutions](https://www.flashaisolutions.org)
