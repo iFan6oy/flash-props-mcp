@@ -121,7 +121,7 @@ Tier limits, entitlements, and the MCP tool ladder in this README are **generate
 Machine sources, in order of authority:
 
 - `GET https://api.flashodds.live/contract.json`: tiers, quotas, entitlements, MCP tools and access, sports vocabulary, projection and snapshot rules. Static per API release.
-- `GET https://api.flashodds.live/api/v1/sports`: runtime state. Which sports are modeled, live, or fresh right now lives here, never in the contract or this README.
+- `GET https://api.flashodds.live/api/v1/sports` (requires a Free key) or the anonymous MCP `list_sports` tool: runtime state. Which sports are modeled, live, or fresh right now lives here, never in the contract or this README.
 
 Maintainers:
 
