@@ -1,0 +1,254 @@
+{
+	"contractVersion": 1,
+	"apiVersion": "1.4.1",
+	"generatedFrom": [
+		"src/config/tiers.ts",
+		"src/mcp/tool-names.ts",
+		"src/config/sports.ts",
+		"src/contract/projection.ts"
+	],
+	"links": {
+		"website": "https://api.flashodds.live/",
+		"docs": "https://api.flashodds.live/docs",
+		"openapi": "https://api.flashodds.live/openapi.json",
+		"contract": "https://api.flashodds.live/contract.json",
+		"pricing": "https://api.flashodds.live/api/v1/pricing",
+		"mcp": "https://api.flashodds.live/mcp",
+		"freeKey": "https://api.flashodds.live/billing/free"
+	},
+	"tiers": [
+		{
+			"id": "free",
+			"name": "Free",
+			"priceMonthlyUsd": 0,
+			"requestsPerDay": 1000,
+			"requestsPerMinute": 30,
+			"scanRows": 25,
+			"entitlements": {
+				"evidence": "teaser",
+				"context": "basic",
+				"leadersLimit": 3,
+				"history": "none",
+				"historyLimit": null,
+				"movement": "none",
+				"movementLimit": null,
+				"movementSeries": false,
+				"splits": "none",
+				"confidence": "none",
+				"form": false,
+				"exports": false
+			}
+		},
+		{
+			"id": "starter",
+			"name": "Builder",
+			"priceMonthlyUsd": 19,
+			"requestsPerDay": 25000,
+			"requestsPerMinute": 120,
+			"scanRows": 100,
+			"entitlements": {
+				"evidence": "basic",
+				"context": "basic",
+				"leadersLimit": 10,
+				"history": "limited",
+				"historyLimit": 25,
+				"movement": "limited",
+				"movementLimit": 25,
+				"movementSeries": false,
+				"splits": "teaser",
+				"confidence": "summary",
+				"form": true,
+				"exports": false
+			}
+		},
+		{
+			"id": "pro",
+			"name": "Pro",
+			"priceMonthlyUsd": 49,
+			"requestsPerDay": 150000,
+			"requestsPerMinute": 600,
+			"scanRows": 500,
+			"entitlements": {
+				"evidence": "full",
+				"context": "full",
+				"leadersLimit": 100,
+				"history": "full",
+				"historyLimit": null,
+				"movement": "full",
+				"movementLimit": null,
+				"movementSeries": true,
+				"splits": "full",
+				"confidence": "full",
+				"form": true,
+				"exports": true
+			}
+		},
+		{
+			"id": "enterprise",
+			"name": "Enterprise",
+			"priceMonthlyUsd": null,
+			"requestsPerDay": 5000000,
+			"requestsPerMinute": 3000,
+			"scanRows": 5000,
+			"entitlements": {
+				"evidence": "full",
+				"context": "full",
+				"leadersLimit": 100,
+				"history": "full",
+				"historyLimit": null,
+				"movement": "full",
+				"movementLimit": null,
+				"movementSeries": true,
+				"splits": "full",
+				"confidence": "full",
+				"form": true,
+				"exports": true
+			}
+		}
+	],
+	"mcp": {
+		"endpoint": "https://api.flashodds.live/mcp",
+		"transport": "streamable-http",
+		"auth": "Authorization: Bearer <api_key>",
+		"anonymousTools": [
+			"list_sports",
+			"get_market_metadata"
+		],
+		"tools": [
+			{
+				"name": "list_sports",
+				"access": "Anonymous capability discovery"
+			},
+			{
+				"name": "get_market_metadata",
+				"access": "Anonymous capability discovery"
+			},
+			{
+				"name": "list_games",
+				"access": "Free+"
+			},
+			{
+				"name": "get_game_props",
+				"access": "Free+"
+			},
+			{
+				"name": "scan_props",
+				"access": "Free+; rows capped per tier (Free 25 rows, Builder 100, Pro 500, Enterprise 5,000)"
+			},
+			{
+				"name": "find_game",
+				"access": "Free+"
+			},
+			{
+				"name": "find_player_props",
+				"access": "Free+"
+			},
+			{
+				"name": "get_player_context",
+				"access": "Free/Builder basic; Pro full"
+			},
+			{
+				"name": "get_prop_evidence",
+				"access": "Free teaser; Builder basic; Pro full"
+			},
+			{
+				"name": "get_prop_history",
+				"access": "Builder limited (latest 25 points); Pro full"
+			},
+			{
+				"name": "scan_movers",
+				"access": "Builder limited (top 25 movers); Pro full"
+			},
+			{
+				"name": "get_leaders",
+				"access": "Free top 3; Builder top 10; Pro top 100"
+			}
+		]
+	},
+	"sports": {
+		"ids": [
+			"nba",
+			"basketball",
+			"mlb",
+			"nfl",
+			"nhl",
+			"ncaab",
+			"ncaaf",
+			"soccer",
+			"tennis",
+			"cs2",
+			"valorant",
+			"dota2",
+			"esports",
+			"cod"
+		],
+		"categories": {
+			"nba": "sports",
+			"basketball": "sports",
+			"mlb": "sports",
+			"nfl": "sports",
+			"nhl": "sports",
+			"ncaab": "sports",
+			"ncaaf": "sports",
+			"soccer": "sports",
+			"tennis": "sports",
+			"cs2": "esports",
+			"valorant": "esports",
+			"dota2": "esports",
+			"esports": "esports",
+			"cod": "esports"
+		},
+		"projectionCapabilities": [
+			"posted_lines_only",
+			"partial_flash_projection",
+			"flash_projection",
+			"advanced_context"
+		],
+		"contextCapabilities": [
+			"none",
+			"deep"
+		],
+		"liveStatuses": [
+			"live",
+			"idle",
+			"offseason"
+		],
+		"dataStatuses": [
+			"fresh",
+			"stale",
+			"partial",
+			"unavailable"
+		],
+		"coverageStates": [
+			"active",
+			"offseason",
+			"never"
+		],
+		"note": "Which sports are modeled, live, or fresh right now is runtime state: read GET /api/v1/sports, never this file."
+	},
+	"projection": {
+		"fields": [
+			"value",
+			"sampleN",
+			"method",
+			"marketKey",
+			"basis",
+			"seasonId",
+			"basisNote"
+		],
+		"bases": [
+			"current_season",
+			"prior_season"
+		],
+		"rule": "A prior_season projection is a prior-season baseline and must never be presented as current form."
+	},
+	"snapshot": {
+		"field": "snapshotId",
+		"consistency": [
+			"single",
+			"mixed",
+			"none"
+		],
+		"rule": "Equal snapshotId values on /sports, /games and /props describe the same logical board. mixed means partial."
+	}
+}

@@ -1,0 +1,39 @@
+name: contract
+
+on:
+  push:
+  pull_request:
+  schedule:
+    # Daily, so drift from the hosted API is caught even when this repo is idle.
+    - cron: '17 13 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    # Offline gate only. No network calls, so flaky links never block a PR.
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Contract drift check
+        run: node scripts/contract.mjs check
+
+  live:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Contract drift check against hosted API
+        run: node scripts/contract.mjs check --live
+      - name: README link check
+        if: always()
+        run: node scripts/contract.mjs links
