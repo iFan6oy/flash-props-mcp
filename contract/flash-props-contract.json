@@ -69,7 +69,7 @@
 			"priceMonthlyUsd": 49,
 			"requestsPerDay": 150000,
 			"requestsPerMinute": 600,
-			"scanRows": 500,
+			"scanRows": 3000,
 			"entitlements": {
 				"evidence": "full",
 				"context": "full",
@@ -118,6 +118,11 @@
 			"list_sports",
 			"get_market_metadata"
 		],
+		"anonymousPreviewTools": [
+			"list_games",
+			"scan_props"
+		],
+		"anonymousPreviewRows": 5,
 		"tools": [
 			{
 				"name": "list_sports",
@@ -129,7 +134,7 @@
 			},
 			{
 				"name": "list_games",
-				"access": "Free+"
+				"access": "Anonymous preview (first 5); Free+ for the full slate"
 			},
 			{
 				"name": "get_game_props",
@@ -137,7 +142,7 @@
 			},
 			{
 				"name": "scan_props",
-				"access": "Free+; rows capped per tier (Free 25 rows, Builder 100, Pro 500, Enterprise 5,000)"
+				"access": "Anonymous preview (first 5 rows); Free+; rows capped per tier (Free 25 rows, Builder 100, Pro 3,000, Enterprise 5,000)"
 			},
 			{
 				"name": "find_game",
@@ -244,7 +249,8 @@
 		],
 		"bases": [
 			"current_season",
-			"prior_season"
+			"prior_season",
+			"mixed_history"
 		],
 		"rule": "A prior_season projection is a prior-season baseline and must never be presented as current form."
 	},
