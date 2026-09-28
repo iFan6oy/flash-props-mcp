@@ -21,9 +21,9 @@
 			"id": "free",
 			"name": "Free",
 			"priceMonthlyUsd": 0,
-			"requestsPerDay": 1000,
-			"requestsPerMinute": 30,
-			"scanRows": 25,
+			"requestsPerDay": 300,
+			"requestsPerMinute": 10,
+			"scanRows": 15,
 			"entitlements": {
 				"evidence": "teaser",
 				"context": "basic",
@@ -142,7 +142,7 @@
 			},
 			{
 				"name": "scan_props",
-				"access": "Anonymous preview (first 5 rows); Free+; rows capped per tier (Free 25 rows, Builder 100, Pro 3,000, Enterprise 5,000)"
+				"access": "Anonymous preview (first 5 rows); Free+; rows capped per tier (Free 15 rows, Builder 100, Pro 3,000, Enterprise 5,000)"
 			},
 			{
 				"name": "find_game",

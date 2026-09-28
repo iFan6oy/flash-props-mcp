@@ -61,7 +61,7 @@ The access ladder below is generated from the hosted contract. Do not edit it by
 | `get_market_metadata` | Anonymous capability discovery |
 | `list_games` | Anonymous preview (first 5); Free+ for the full slate |
 | `get_game_props` | Free+ |
-| `scan_props` | Anonymous preview (first 5 rows); Free+; rows capped per tier (Free 25 rows, Builder 100, Pro 3,000, Enterprise 5,000) |
+| `scan_props` | Anonymous preview (first 5 rows); Free+; rows capped per tier (Free 15 rows, Builder 100, Pro 3,000, Enterprise 5,000) |
 | `find_game` | Free+ |
 | `find_player_props` | Free+ |
 | `get_player_context` | Free/Builder basic; Pro full |
@@ -106,7 +106,7 @@ Missing analysis is reported explicitly. Flash Props does not fabricate a projec
 Generated from the hosted contract. Do not edit by hand.
 
 <!-- contract:tiers:start -->
-- **Free**: $0, 1,000 requests/day, 30 requests/minute, 25-row scans, evidence teaser, context basic, history none, movement none, top 3 leaders
+- **Free**: $0, 300 requests/day, 10 requests/minute, 15-row scans, evidence teaser, context basic, history none, movement none, top 3 leaders
 - **Builder** (internal id `starter`): $19/mo, 25,000 requests/day, 120 requests/minute, 100-row scans, evidence basic, context basic, history limited, movement limited, top 10 leaders
 - **Pro**: $49/mo, 150,000 requests/day, 600 requests/minute, 3,000-row scans, evidence full, context full, history full, movement full, top 100 leaders
 - **Enterprise**: custom limits
