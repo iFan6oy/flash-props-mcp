@@ -23,6 +23,8 @@ jobs:
           node-version: 22
       - name: Contract drift check
         run: node scripts/contract.mjs check
+      - name: First-request sample unit tests (offline)
+        run: node --test examples/first-request.test.mjs
 
   live:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
