@@ -18,6 +18,20 @@ This repository is the **public connector and metadata surface** for the hosted 
 - Free API key: https://api.flashodds.live/billing/free
 - Publisher: https://www.flashaisolutions.org
 
+## Try the REST API in two requests (Node 20+)
+
+New to sports data integrations? Run the [dependency-free first-request example](examples/first-request.mjs). It reads the current sport catalog, then fetches the market vocabulary for a sport you choose. This is a read-only example, with no wagers, betting automation, SDK install, or paid plan required.
+
+1. [Get a free Flash Props API key](https://api.flashodds.live/billing/free?utm_source=github&utm_medium=organic&utm_campaign=mcp_quickstart).
+2. Put the key in your local `FLASH_PROPS_API_KEY` environment variable. Keep it out of commits and query strings.
+3. Run `node examples/first-request.mjs` for CS2 or `node examples/first-request.mjs nfl` for NFL.
+
+On macOS/Linux, one shell-safe way to enter the key without saving it to command history is `read -rs FLASH_PROPS_API_KEY && export FLASH_PROPS_API_KEY`. On PowerShell, use `$env:FLASH_PROPS_API_KEY = Read-Host "Flash Props API key"`. Clear the variable after using it.
+
+The script checks for 401, 403 and 429 without leaking your key or silently retrying into a quota wall. It uses `GET /api/v1/sports` as the source of truth for current coverage; its chosen sport may have no live board right now. Tests are included under [examples/first-request.test.mjs](examples/first-request.test.mjs), using mocked responses and no network.
+
+**Want to connect an AI agent instead?** Use the remote MCP endpoint below with the same key and plan. Prefer the [live public contract](https://api.flashodds.live/contract.json) if a third-party directory's cached feature list is older than the hosted server.
+
 ## Connect
 
 Streamable HTTP endpoint:
