@@ -1,6 +1,7 @@
 // Flash Props API: first successful REST request (Node 20+, no dependencies).
 // Do not place API keys in URLs, public commits, logs, or error messages.
 import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 
 export const API_BASE = 'https://api.flashodds.live';
 
@@ -60,7 +61,7 @@ export function summarize(result) {
 }
 
 // Importing this module is inert; only executing it starts the two requests.
-if (process.argv[1] && fileURLToPath(import.meta.url) === fileURLToPath(new URL('file://' + process.argv[1]))) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   discover({ sport: process.argv[2] || 'cs2' })
     .then((result) => console.log(JSON.stringify(summarize(result), null, 2)))
     .catch((error) => {
