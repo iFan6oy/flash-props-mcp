@@ -17,6 +17,17 @@ This repository is the **public connector and metadata surface** for the hosted 
 - MCP endpoint: https://api.flashodds.live/mcp
 - Free API key: https://api.flashodds.live/billing/free
 - Publisher: https://www.flashaisolutions.org
+- [Postman setup guide](https://api.flashodds.live/postman?utm_source=github&utm_medium=organic&utm_campaign=mcp_postman_quickstart)
+- [Public Postman workspace](https://www.postman.com/planetary-eclipse-187496/flash-props-api/overview)
+- [Postman JSON collection](https://api.flashodds.live/postman-collection.json)
+
+## Explore the API with Postman
+
+The [Flash Props public Postman workspace](https://www.postman.com/planetary-eclipse-187496/flash-props-api/overview) contains the collection for graphical exploration and forking. To get your first successful request without an SDK, start with the [Postman quickstart](https://api.flashodds.live/postman?utm_source=github&utm_medium=organic&utm_campaign=mcp_postman_quickstart), create a free key, then run the **List supported sports with live status + capability** request inside the `Start here` folder.
+
+If Postman isn't accessible from your browser, download the [credential-free collection JSON](https://api.flashodds.live/postman-collection.json) and use Postman's **Import** action. Our API host maintains that JSON as the reference copy; the marketplace copy may lag after a product release.
+
+Never paste your key into GitHub, a URL, a shared collection variable, or a screenshot. The collection's `apiKey` variable is intentionally empty; set your key privately in Postman before running authenticated requests.
 
 ## Try the REST API in two requests (Node 20+)
 
