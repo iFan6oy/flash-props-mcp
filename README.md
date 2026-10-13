@@ -22,7 +22,7 @@ This repository is the **public connector and metadata surface** for the hosted 
 
 New to sports data integrations? Run the [dependency-free first-request example](examples/first-request.mjs). It reads the current sport catalog, then fetches the market vocabulary for a sport you choose. This is a read-only example, with no wagers, betting automation, SDK install, or paid plan required.
 
-1. [Get a free Flash Props API key](https://api.flashodds.live/billing/free).
+1. [Get a free Flash Props API key](https://api.flashodds.live/billing/free?utm_source=github&utm_medium=organic&utm_campaign=mcp_quickstart).
 2. Put the key in your local `FLASH_PROPS_API_KEY` environment variable. Keep it out of commits and query strings.
 3. Run `node examples/first-request.mjs` for CS2 or `node examples/first-request.mjs nfl` for NFL.
 
